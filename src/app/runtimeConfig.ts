@@ -10,7 +10,7 @@ const parsedApiUrl = new URL(rawApiUrl)
 if (!['http:', 'https:'].includes(parsedApiUrl.protocol)) {
   throw new Error('VITE_ADMIN_API_URL yalnız http/https URL ola bilər')
 }
-
+//new
 const environment = (import.meta.env.VITE_APP_ENV || (import.meta.env.PROD ? 'production' : 'development')) as RuntimeConfig['environment']
 
 export const runtimeConfig: RuntimeConfig = Object.freeze({
