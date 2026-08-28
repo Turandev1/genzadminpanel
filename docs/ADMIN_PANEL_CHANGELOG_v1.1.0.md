@@ -40,36 +40,37 @@ Bu versiya admin frontend ilə backend arasındakı işləməyən auth kontrakt�
 - `backend/internal/api/router.go`
   - `GET/PATCH /api/v1/admin/me` və `POST /api/v1/admin/me/password` route-ları bütün dörd panel rolu üçün əlavə edildi.
 
-### Superadmin və birdəfəlik bootstrap
+### Superadmin credential refresh
 
 - `backend/internal/repos/admin.go`
   - Superadmin context-i `permissions: ["*"]` qaytarır; yeni permission əlavə edildikdə ayrıca mapping gözləmədən backend bypass ilə uyğun qalır.
 - `backend/migrations/000014_admin_account_security.sql`
   - `must_change_password` və self-account permission-ları əlavə edildi.
-- `backend/cmd/bootstrap-superadmin/main.go`
-  - Advisory lock + serializable transaction ilə yalnız bir dəfə işləyən production bootstrap command yaradıldı.
+- `backend/cmd/refresh-superadmin/main.go`
+  - Advisory lock + serializable transaction ilə mövcud superadmin hesablarını atomik şəkildə əvəz edən production command yaradıldı.
   - Plaintext şifrə source/SQL/binary daxilində saxlanılmır; yalnız runtime secret-dən oxunur və DB-yə bcrypt hash yazılır.
-  - Mövcud Superadmin varsa command fail-closed davranır.
+  - `REFRESH_SUPERADMIN=true` olmadan command fail-closed davranır.
   - Hesab ilk girişdə şifrəni dəyişməyə məcburdur və yaradılma audit event-i yazılır.
 - `backend/Makefile`
-  - `bootstrap-superadmin` target-i əlavə edildi.
+  - `refresh-superadmin` target-i əlavə edildi.
 
 İlkin production icrası:
 
 ```bash
 cd backend
-BOOTSTRAP_SUPERADMIN_PASSWORD='genzclubsuperadmin' \
-BOOTSTRAP_SUPERADMIN_CONFIRM='CREATE_GENZ_ROOT_ONCE' \
+REFRESH_SUPERADMIN=true \
+SUPERADMIN_EMAIL='owner@example.com' \
+SUPERADMIN_PASSWORD='StrongPassword123!' \
 DATABASE_URL='postgres://…' \
-make bootstrap-superadmin
+make refresh-superadmin
 ```
 
-Yaranan əsas hesab:
+Yaranan superadmin hesabı:
 
-- Email: `genzclub@root`
-- İlkin şifrə: `genzclubsuperadmin`
+- Email: `SUPERADMIN_EMAIL` env dəyişənindən gəlir.
+- İlkin şifrə: `SUPERADMIN_PASSWORD` env dəyişənindən gəlir.
 
-İcradan dərhal sonra şifrə paneldən dəyişdirilməli, deploy image-dan `cmd/bootstrap-superadmin` command-i çıxarılmalı və bootstrap secret-i secret manager-dən silinməlidir. Command ikinci Superadmin yaratmır.
+İcradan dərhal sonra şifrə paneldən dəyişdirilməli və `REFRESH_SUPERADMIN`, `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` secret manager-dən silinməlidir. Command bütün mövcud superadmin hesablarını əvəz edir.
 
 ## Frontend və UI/UX
 

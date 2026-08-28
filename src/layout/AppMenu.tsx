@@ -18,7 +18,8 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import { Box, Typography } from '@mui/material'
 import type { ReactElement } from 'react'
 import { Menu, MenuItemLink, usePermissions } from 'react-admin'
-import { canAccess, resourceContracts } from '../data/resourceRegistry'
+import { runtimeConfig } from '../app/runtimeConfig'
+import { canAccess, implementedResourceContracts, resourceContracts } from '../data/resourceRegistry'
 
 const icons: Record<string, ReactElement> = {
   clubs: <BusinessOutlinedIcon />, events: <CalendarMonthOutlinedIcon />, attendees: <GroupOutlinedIcon />, 'join-requests': <FactCheckOutlinedIcon />,
@@ -35,11 +36,12 @@ const groups = [
 
 export function AppMenu() {
   const { permissions } = usePermissions<string[]>()
+  const visibleResourceContracts = runtimeConfig.demoMode ? resourceContracts : implementedResourceContracts
   return (
     <Menu className="app-menu" component="nav" aria-label="Əsas menyu">
       <MenuItemLink to="/" leftIcon={<AutoAwesomeMosaicOutlinedIcon />} primaryText="İcmal" />
       {groups.map((group) => {
-        const items = resourceContracts.filter((item) => item.group === group.key && canAccess(permissions, item.readPermission))
+        const items = visibleResourceContracts.filter((item) => item.group === group.key && canAccess(permissions, item.readPermission))
         if (!items.length) return null
         return (
           <Box key={group.key} className="menu-group">

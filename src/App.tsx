@@ -2,7 +2,8 @@ import { Admin, CustomRoutes, Resource } from 'react-admin'
 import { Route } from 'react-router-dom'
 import { authProvider } from './auth/authProvider'
 import { dataProvider } from './data/dataProvider'
-import { resourceContracts } from './data/resourceRegistry'
+import { implementedResourceContracts, resourceContracts } from './data/resourceRegistry'
+import { runtimeConfig } from './app/runtimeConfig'
 import { appTheme, darkTheme } from './design-system/theme'
 import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './login/LoginPage'
@@ -12,8 +13,10 @@ import { AccessDenied, NotFoundPage } from './pages/SystemPages'
 import { createResourcePages } from './resources/ResourcePages'
 import './App.css'
 
+const visibleResourceContracts = runtimeConfig.demoMode ? resourceContracts : implementedResourceContracts
+
 const pages = Object.fromEntries(
-  resourceContracts.map((contract) => [contract.name, createResourcePages(contract)]),
+  visibleResourceContracts.map((contract) => [contract.name, createResourcePages(contract)]),
 )
 
 export default function App() {
@@ -32,14 +35,14 @@ export default function App() {
       disableTelemetry
       catchAll={NotFoundPage}
     >
-      {resourceContracts.map((contract) => {
+      {visibleResourceContracts.map((contract) => {
         const resourcePages = pages[contract.name]
         return (
           <Resource
             key={contract.name}
             name={contract.name}
             list={resourcePages.list}
-            show={resourcePages.show}
+            show={contract.supportsShow === false ? undefined : resourcePages.show}
             create={contract.createPermission ? resourcePages.create : undefined}
             edit={contract.writePermission ? resourcePages.edit : undefined}
             recordRepresentation={contract.recordLabel}

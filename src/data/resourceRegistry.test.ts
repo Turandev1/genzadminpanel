@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canAccess, resourceContractMap, resourceContracts } from './resourceRegistry'
+import { canAccess, implementedResourceContracts, resourceContractMap, resourceContracts } from './resourceRegistry'
 
 describe('capability registry', () => {
   it('uses unique resource names and paths', () => {
@@ -18,5 +18,9 @@ describe('capability registry', () => {
     expect(resourceContractMap.get('payouts')?.readPermission).toBe('finance.payouts.read')
     expect(resourceContractMap.get('settings')?.readPermission).toBe('system.settings.read')
     expect(resourceContractMap.get('audit-events')?.readPermission).toBe('security.audit.read')
+  })
+
+  it('only exposes backend-supported resources in production', () => {
+    expect(implementedResourceContracts.map(({ name }) => name)).toEqual(['clubs', 'events', 'audit-events'])
   })
 })

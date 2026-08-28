@@ -18,6 +18,11 @@ Real backend üçün:
 VITE_ADMIN_DEMO_MODE=false npm run dev
 ```
 
+Production-da `VITE_ADMIN_API_URL` Railway API URL-ni göstərməli, backend-in
+`CORS_ORIGINS` dəyişəni isə admin panelin tam `https://` origin-ini (məsələn,
+`https://admin.example.com`) daxil etməlidir. Refresh cookie cross-origin
+işlədiyi üçün `CORS_ORIGINS=*` istifadə etməyin.
+
 ## Yoxlama
 
 ```bash

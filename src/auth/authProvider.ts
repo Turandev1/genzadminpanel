@@ -54,8 +54,9 @@ export const authProvider: AuthProvider = {
         method: 'POST', skipAuth: true, body: { challenge_id: pendingChallenge, code: params.mfaCode },
       })
       if (!result.access_token) throw new Error('MFA yoxlaması tamamlanmadı')
+      sessionStore.setContext(null)
       sessionStore.setAccessToken(result.access_token)
-      if (result.csrf_token) sessionStore.setCsrfToken(result.csrf_token)
+      sessionStore.setCsrfToken(result.csrf_token || null)
       pendingChallenge = null
       await loadContext()
       return
@@ -69,7 +70,9 @@ export const authProvider: AuthProvider = {
       throw new Error('MFA_CHALLENGE')
     }
     if (!result.access_token) throw new Error('Giriş cavabı etibarsızdır')
+    sessionStore.setContext(null)
     sessionStore.setAccessToken(result.access_token)
+    sessionStore.setCsrfToken(result.csrf_token || null)
     await loadContext()
   },
   async logout() {

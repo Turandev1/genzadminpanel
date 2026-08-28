@@ -16,6 +16,7 @@ export type ResourceContract = {
   readPermission: string
   writePermission?: string
   createPermission?: string
+  supportsShow?: boolean
   accent: string
   description: string
   recordLabel: string
@@ -82,6 +83,21 @@ export const resourceContracts: ResourceContract[] = [
 ]
 
 export const resourceContractMap = new Map(resourceContracts.map((item) => [item.name, item]))
+
+// The panel has a larger design-time registry for demo mode. Only expose
+// resources whose API endpoints are implemented in the production backend;
+// otherwise React Admin interprets an API failure as an expired session and
+// redirects the operator to login.
+const implementedResourceNames = new Set(['clubs', 'events', 'audit-events'])
+
+export const implementedResourceContracts = resourceContracts
+  .filter(({ name }) => implementedResourceNames.has(name))
+  .map((contract) => contract.name === 'clubs' ? contract : {
+    ...contract,
+    createPermission: undefined,
+    writePermission: undefined,
+    supportsShow: false,
+  })
 
 export function canAccess(permissions: string[] | undefined, permission: string): boolean {
   if (!permissions) return false
