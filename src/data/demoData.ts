@@ -3,13 +3,9 @@ import type { AdminContext } from '../auth/session'
 const expires = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
 const commonSession = { expires_at: expires, idle_expires_at: expires, mfa_level: 'webauthn', permissions_version: 12 }
 
-const moderatorPermissions = ['content.clubs.read', 'content.clubs.create', 'content.clubs.update', 'content.events.read', 'content.events.create', 'content.events.update', 'content.attendees.read', 'content.join_requests.read', 'content.join_requests.review']
-const ambassadorPermissions = ['growth.campaigns.read_own', 'growth.campaigns.manage_own', 'growth.referrals.read_own', 'growth.rewards.read_own', 'growth.tasks.read_own', 'growth.tasks.submit_own']
-const adminPermissions = ['content.clubs.read', 'content.events.read', 'content.attendees.read', 'ops.users.read', 'ops.users.update', 'ops.reports.read', 'ops.reports.review', 'ops.ambassadors.read', 'ops.ambassadors.review', 'ops.jobs.read', 'ops.jobs.retry', 'security.audit.read']
+const adminPermissions = ['content.clubs.read', 'content.events.read', 'content.attendees.read', 'ops.users.read', 'ops.users.update', 'ops.reports.read', 'ops.reports.review', 'ops.ambassadors.read', 'ops.ambassadors.review', 'ops.partners.read', 'ops.partners.review', 'ops.jobs.read', 'ops.jobs.retry', 'security.audit.read']
 
 export const demoProfiles: Record<string, AdminContext> = {
-  moderator: { identity: { id: 'demo-moderator', fullName: 'Nərgiz Məmmədli', email: 'moderator@genz.club' }, roles: ['moderator'], permissions: moderatorPermissions, scopes: { club_ids: ['club-1', 'club-2'] }, session: commonSession },
-  ambassador: { identity: { id: 'demo-ambassador', fullName: 'Leyla Əliyeva', email: 'ambassador@genz.club' }, roles: ['ambassador'], permissions: ambassadorPermissions, scopes: {}, session: commonSession },
   admin: { identity: { id: 'demo-admin', fullName: 'Aysel Quliyeva', email: 'admin@genz.club' }, roles: ['admin'], permissions: adminPermissions, scopes: {}, session: commonSession },
   superadmin: { identity: { id: 'demo-superadmin', fullName: 'Murad Rzayev', email: 'superadmin@genz.club' }, roles: ['superadmin'], permissions: ['*'], scopes: {}, session: commonSession },
 }
@@ -63,7 +59,7 @@ export const demoData: Record<string, DemoRecord[]> = {
     { id: 'user-1', name: 'Nihad Abbasov', email: 'ni***@mail.az', role: 'user', created_at: iso(-180), last_seen_at: iso(-1), status: 'active' },
     { id: 'user-2', name: 'Səbinə Rəhimli', email: 'sa***@mail.az', role: 'ambassador', created_at: iso(-120), last_seen_at: iso(-2), status: 'active' },
     { id: 'user-3', name: 'Rauf Kərimli', email: 'ra***@mail.az', role: 'user', created_at: iso(-30), last_seen_at: iso(-8), status: 'suspended' },
-    { id: 'user-4', name: 'Aytac Əliyeva', email: 'ay***@mail.az', role: 'moderator', created_at: iso(-240), last_seen_at: iso(-1), status: 'active' },
+    { id: 'user-4', name: 'Aytac Əliyeva', email: 'ay***@mail.az', role: 'partner_owner', created_at: iso(-240), last_seen_at: iso(-1), status: 'active' },
   ],
   reports: [
     { id: 'report-1', reference: 'REP-2901', reason: 'Spam və təkrar paylaşım', reporter_name: '2 istifadəçi', created_at: iso(-1), priority: 'medium', status: 'open' },

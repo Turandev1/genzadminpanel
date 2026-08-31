@@ -21,7 +21,7 @@ type Account = {
 }
 
 const roleLabels: Record<string, string> = {
-  superadmin: 'Superadmin', admin: 'Admin', moderator: 'Moderator', ambassador: 'Ambassador',
+  superadmin: 'Superadmin', admin: 'Admin',
 }
 
 function demoAccount(): Account {

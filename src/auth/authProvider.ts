@@ -1,27 +1,23 @@
 import type { AuthProvider, UserIdentity } from 'react-admin'
 import { runtimeConfig } from '../app/runtimeConfig'
-import { demoProfiles } from '../data/demoData'
 import { apiRequest } from '../data/httpClient'
 import { sessionStore, singleFlightRefresh, type AdminContext } from './session'
 
 type LoginParams = { username?: string; email?: string; password?: string; mfaCode?: string }
-type LoginResult = { access_token?: string; csrf_token?: string; challenge_id?: string; mfa_required?: boolean }
+type LoginResult = { access_token?: string; csrf_token?: string; challenge_id?: string; mfa_required?: boolean; mfa_enrollment_required?: boolean }
 
 let pendingChallenge: string | null = null
 
-function setDemoSession(email: string) {
-  const key = email.split('@')[0]
-  const profile = demoProfiles[key] || demoProfiles.admin
-  sessionStore.setAccessToken('development-demo-token')
-  sessionStore.setContext(profile)
+async function setDemoSession(email: string) {
+  if (!import.meta.env.DEV) throw new Error('Demo session production build-də mövcud deyil')
+  const demoSession = await import('./demoSession')
+  demoSession.setDemoSession(email)
 }
 
 async function refreshSession(): Promise<string> {
   if (runtimeConfig.demoMode) {
-    const token = sessionStore.getAccessToken() || 'development-demo-token'
-    sessionStore.setAccessToken(token)
-    if (!sessionStore.getContext()) setDemoSession('admin@genz.club')
-    return token
+    if (!sessionStore.getAccessToken() || !sessionStore.getContext()) await setDemoSession('admin@genz.club')
+    return sessionStore.getAccessToken() as string
   }
   const response = await apiRequest<{ access_token: string; csrf_token?: string }>('/admin/auth/refresh', { method: 'POST', skipAuth: true })
   sessionStore.setAccessToken(response.access_token)
@@ -33,7 +29,7 @@ async function loadContext(): Promise<AdminContext> {
   const cached = sessionStore.getContext()
   if (cached) return cached
   if (runtimeConfig.demoMode) {
-    setDemoSession('admin@genz.club')
+    await setDemoSession('admin@genz.club')
     return sessionStore.getContext() as AdminContext
   }
   const context = await apiRequest<AdminContext>('/admin/auth/context')
@@ -45,7 +41,7 @@ export const authProvider: AuthProvider = {
   async login(params: LoginParams) {
     const email = params.email || params.username || ''
     if (runtimeConfig.demoMode) {
-      setDemoSession(email || 'admin@genz.club')
+      await setDemoSession(email || 'admin@genz.club')
       return
     }
 
@@ -74,6 +70,7 @@ export const authProvider: AuthProvider = {
     sessionStore.setAccessToken(result.access_token)
     sessionStore.setCsrfToken(result.csrf_token || null)
     await loadContext()
+	if (result.mfa_enrollment_required) return { redirectTo: '/mfa-enroll' }
   },
   async logout() {
     if (!runtimeConfig.demoMode) {

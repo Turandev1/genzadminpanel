@@ -9,6 +9,7 @@ import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './login/LoginPage'
 import { Dashboard } from './pages/Dashboard'
 import { AccountSettings } from './pages/AccountSettings'
+import { MFAEnrollment } from './pages/MFAEnrollment'
 import { AccessDenied, NotFoundPage } from './pages/SystemPages'
 import { createResourcePages } from './resources/ResourcePages'
 import './App.css'
@@ -20,8 +21,10 @@ const pages = Object.fromEntries(
 )
 
 export default function App() {
+	const basename = window.location.pathname.startsWith('/internal') ? '/internal' : ''
   return (
     <Admin
+	  basename={basename}
       title="GEN Z Club — İdarəetmə"
       dataProvider={dataProvider}
       authProvider={authProvider}
@@ -52,6 +55,7 @@ export default function App() {
       <CustomRoutes>
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/account" element={<AccountSettings />} />
+		<Route path="/mfa-enroll" element={<MFAEnrollment />} />
       </CustomRoutes>
     </Admin>
   )

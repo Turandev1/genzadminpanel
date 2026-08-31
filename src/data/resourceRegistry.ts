@@ -59,6 +59,9 @@ export const resourceContracts: ResourceContract[] = [
   contract({ name: 'ambassador-applications', label: 'Ambassador müraciətləri', singular: 'Müraciət', path: '/admin/ambassador-applications', group: 'operations', readPermission: 'ops.ambassadors.read', writePermission: 'ops.ambassadors.review', accent: '#FF9C77', description: 'Ambassador qəbul və dayandırma axını', recordLabel: 'name', fields: [
     { source: 'name', label: 'Namizəd' }, { source: 'city', label: 'Şəhər' }, { source: 'followers', label: 'Auditoriya', kind: 'number' }, { source: 'created_at', label: 'Müraciət', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
+  contract({ name: 'partner-organizations', label: 'Partner təşkilatları', singular: 'Partner təşkilatı', path: '/admin/partner-organizations', group: 'operations', readPermission: 'ops.partners.read', writePermission: 'ops.partners.review', supportsShow: false, accent: '#72E6B1', description: 'Partner approval, owner və lifecycle vəziyyəti', recordLabel: 'name', fields: [
+	{ source: 'name', label: 'Təşkilat' }, { source: 'slug', label: 'Slug' }, { source: 'owners_count', label: 'Owner', kind: 'number' }, { source: 'members_count', label: 'Üzvlər', kind: 'number' }, { source: 'status', label: 'Status', kind: 'status' }, { source: 'updated_at', label: 'Yenilənib', kind: 'date' },
+  ] }),
   contract({ name: 'jobs', label: 'Fon işləri', singular: 'İş', path: '/admin/jobs', group: 'operations', readPermission: 'ops.jobs.read', writePermission: 'ops.jobs.retry', accent: '#FF9C77', description: 'Outbox, retry və background job müşahidəsi', recordLabel: 'name', fields: [
     { source: 'name', label: 'İş' }, { source: 'queue', label: 'Növbə' }, { source: 'attempts', label: 'Cəhd', kind: 'number' }, { source: 'updated_at', label: 'Yenilənib', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
@@ -88,7 +91,7 @@ export const resourceContractMap = new Map(resourceContracts.map((item) => [item
 // resources whose API endpoints are implemented in the production backend;
 // otherwise React Admin interprets an API failure as an expired session and
 // redirects the operator to login.
-const implementedResourceNames = new Set(['clubs', 'events', 'audit-events'])
+const implementedResourceNames = new Set(['clubs', 'events', 'partner-organizations', 'audit-events'])
 
 export const implementedResourceContracts = resourceContracts
   .filter(({ name }) => implementedResourceNames.has(name))

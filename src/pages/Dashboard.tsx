@@ -2,7 +2,6 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined'
@@ -27,18 +26,6 @@ const roleContent = {
     { label: 'Aktiv istifadəçilər', value: '8,491', delta: '+6.2%', detail: 'bu gün', color: '#B7F34A', icon: <GroupOutlinedIcon /> },
     { label: 'Uğursuz işlər', value: '3', delta: '1 kritik', detail: 'retry mümkündür', color: '#FF8394', icon: <SecurityOutlinedIcon /> },
   ] },
-  moderator: { title: 'Community gündəliyi', subtitle: 'İdarə etdiyiniz klub və tədbirlərin bugünkü görünüşü.', badge: 'MODERATOR', metrics: [
-    { label: 'Klub üzvləri', value: '4,804', delta: '+9.6%', detail: 'son 30 gündə', color: '#B7F34A', icon: <GroupOutlinedIcon /> },
-    { label: 'Yaxın tədbirlər', value: '7', delta: '2 draft', detail: 'növbəti 14 gün', color: '#8EDBFF', icon: <CalendarMonthOutlinedIcon /> },
-    { label: 'Qoşulma sorğusu', value: '18', delta: '8 yeni', detail: 'icmal gözləyir', color: '#FFD66B', icon: <CheckCircleOutlineIcon /> },
-    { label: 'Check-in nisbəti', value: '82%', delta: '+4.1%', detail: 'son tədbirlər', color: '#72E6B1', icon: <ArrowUpwardIcon /> },
-  ] },
-  ambassador: { title: 'Growth studio', subtitle: 'Kampaniya, referral və mükafat performansınız.', badge: 'AMBASSADOR', metrics: [
-    { label: 'Referral klikləri', value: '2,292', delta: '+18.4%', detail: 'son 30 gündə', color: '#C6A7FF', icon: <CampaignOutlinedIcon /> },
-    { label: 'Konversiyalar', value: '283', delta: '12.3%', detail: 'conversion rate', color: '#B7F34A', icon: <ArrowUpwardIcon /> },
-    { label: 'Gözləyən mükafat', value: '₼426', delta: '+₼84', detail: 'bu ay', color: '#72E6B1', icon: <CheckCircleOutlineIcon /> },
-    { label: 'Aktiv promo', value: '4', delta: '1 bitir', detail: 'növbəti 7 gün', color: '#FFD66B', icon: <CalendarMonthOutlinedIcon /> },
-  ] },
 } satisfies Record<string, { title: string; subtitle: string; badge: string; metrics: Metric[] }>
 
 const chartValues = [42, 54, 49, 62, 57, 73, 69, 81, 76, 86, 78, 92]
@@ -59,7 +46,7 @@ export function Dashboard() {
     <Box className="dashboard-page">
       <Box className="dashboard-header">
         <Box><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Chip label={content.badge} size="small" className="role-chip" /><span className="live-label"><i /> CANLI</span></Stack><Typography component="h1">{greeting}, {String(identity?.fullName || 'operator').split(' ')[0]}.</Typography><Typography>{content.subtitle}</Typography></Box>
-        <Stack direction="row" spacing={1}><Button variant="outlined" component={Link} to="/audit-events">Audit izi</Button><Button variant="contained" endIcon={<ArrowForwardIcon />} component={Link} to={role === 'ambassador' ? '/campaigns/create' : role === 'moderator' ? '/events/create' : '/reports'}>{role === 'ambassador' ? 'Kampaniya yarat' : role === 'moderator' ? 'Tədbir yarat' : 'Növbəni aç'}</Button></Stack>
+		<Stack direction="row" spacing={1}><Button variant="outlined" component={Link} to="/audit-events">Audit izi</Button><Button variant="contained" endIcon={<ArrowForwardIcon />} component={Link} to="/reports">Növbəni aç</Button></Stack>
       </Box>
 
       <Box className="metrics-grid">{content.metrics.map((metric) => <Card className="metric-card" key={metric.label}><Box className="metric-icon" sx={{ backgroundColor: metric.color }}>{metric.icon}</Box><Typography>{metric.label}</Typography><strong>{metric.value}</strong><Box><span>{metric.delta}</span> {metric.detail}</Box></Card>)}</Box>
@@ -67,7 +54,7 @@ export function Dashboard() {
       <Box className="dashboard-grid">
         <Card className="performance-card">
           <Box className="card-heading"><Box><Typography component="h2">{content.title}</Typography><Typography>Son 12 həftənin əsas platform siqnalı</Typography></Box><Stack direction="row" spacing={1}><Chip label="12 həftə" variant="outlined" /><IconButton><MoreHorizIcon /></IconButton></Stack></Box>
-          <Box className="chart-summary"><strong>{role === 'ambassador' ? '12.3%' : '68.4K'}</strong><span><ArrowUpwardIcon /> 14.8%</span></Box>
+		  <Box className="chart-summary"><strong>68.4K</strong><span><ArrowUpwardIcon /> 14.8%</span></Box>
           <Box className="bar-chart" aria-label="12 həftəlik performans qrafiki">{chartValues.map((value, index) => <Box key={index} className="bar-column"><span style={{ height: `${value}%` }} /><small>{index % 2 === 0 ? `${index + 1}h` : ''}</small></Box>)}</Box>
         </Card>
         <Card className="queue-card">

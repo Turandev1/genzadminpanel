@@ -17,17 +17,17 @@ import { type FormEvent, useState } from "react";
 import { useLogin } from "react-admin";
 import { runtimeConfig } from "../app/runtimeConfig";
 
-const demoUsers = [
-  { role: "Superadmin", email: "superadmin@genz.club" },
-  { role: "Admin", email: "admin@genz.club" },
-  { role: "Moderator", email: "moderator@genz.club" },
-  { role: "Ambassador", email: "ambassador@genz.club" },
-];
+const demoUsers = import.meta.env.DEV
+  ? [
+      { role: "Superadmin", email: "superadmin@genz.club" },
+      { role: "Admin", email: "admin@genz.club" },
+    ]
+  : [];
 
 export function LoginPage() {
   const login = useLogin();
-  const [email, setEmail] = useState("admin@genz.club");
-  const [password, setPassword] = useState("admin-demo");
+  const [email, setEmail] = useState(import.meta.env.DEV ? "admin@genz.club" : "");
+  const [password, setPassword] = useState(import.meta.env.DEV ? "admin-demo" : "");
   const [mfaCode, setMfaCode] = useState("");
   const [mfaStage, setMfaStage] = useState(false);
   const [pending, setPending] = useState(false);

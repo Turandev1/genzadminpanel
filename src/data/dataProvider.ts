@@ -1,6 +1,6 @@
 import type { DataProvider, Identifier, RaRecord } from 'react-admin'
 import { runtimeConfig } from '../app/runtimeConfig'
-import { demoData, type DemoRecord } from './demoData'
+import type { DemoRecord } from './demoData'
 import { apiRequest } from './httpClient'
 import { resourceContractMap } from './resourceRegistry'
 
@@ -67,8 +67,13 @@ const realDataProvider: DataProvider = {
   },
 }
 
-function records(resource: string): DemoRecord[] {
-  return demoData[resource] || []
+async function loadDemoData() {
+  if (!import.meta.env.DEV) throw new Error('Demo provider production build-də mövcud deyil')
+  return (await import('./demoData')).demoData
+}
+
+async function records(resource: string): Promise<DemoRecord[]> {
+  return (await loadDemoData())[resource] || []
 }
 
 function matchesFilter(record: DemoRecord, filter: Record<string, unknown>): boolean {
@@ -80,7 +85,7 @@ function matchesFilter(record: DemoRecord, filter: Record<string, unknown>): boo
 const demoDataProvider: DataProvider = {
   supportAbortSignal: true,
   async getList(resource, params) {
-    const filtered = records(resource).filter((item) => matchesFilter(item, params.filter || {}))
+    const filtered = (await records(resource)).filter((item) => matchesFilter(item, params.filter || {}))
     const field = params.sort?.field || 'id'
     const order = params.sort?.order === 'ASC' ? 1 : -1
     filtered.sort((a, b) => String(a[field] ?? '').localeCompare(String(b[field] ?? ''), 'az') * order)
@@ -89,25 +94,27 @@ const demoDataProvider: DataProvider = {
     return { data: filtered.slice((page - 1) * perPage, page * perPage) as never[], total: filtered.length }
   },
   async getOne(resource, params) {
-    const data = records(resource).find((item) => String(item.id) === String(params.id))
+    const data = (await records(resource)).find((item) => String(item.id) === String(params.id))
     if (!data) throw new Error('Resurs tapılmadı')
     return { data: data as never }
   },
   async getMany(resource, params) {
-    return { data: records(resource).filter((item) => params.ids.map(String).includes(String(item.id))) as never[] }
+    return { data: (await records(resource)).filter((item) => params.ids.map(String).includes(String(item.id))) as never[] }
   },
   async getManyReference(resource, params) {
     return demoDataProvider.getList(resource, { ...params, filter: { ...params.filter, [params.target]: params.id } })
   },
   async create(resource, params) {
     const data = { ...params.data, id: crypto.randomUUID(), status: params.data.status || 'draft', updated_at: new Date().toISOString(), version: 1 } as DemoRecord
-    records(resource).unshift(data)
+    const resourceRecords = await records(resource)
+    resourceRecords.unshift(data)
     return { data: data as never }
   },
   async update(resource, params) {
-    const index = records(resource).findIndex((item) => String(item.id) === String(params.id))
-    const data = { ...records(resource)[index], ...params.data, id: params.id, updated_at: new Date().toISOString() } as DemoRecord
-    if (index >= 0) records(resource)[index] = data
+    const resourceRecords = await records(resource)
+    const index = resourceRecords.findIndex((item) => String(item.id) === String(params.id))
+    const data = { ...resourceRecords[index], ...params.data, id: params.id, updated_at: new Date().toISOString() } as DemoRecord
+    if (index >= 0) resourceRecords[index] = data
     return { data: data as never }
   },
   async updateMany(resource, params) {
@@ -115,13 +122,15 @@ const demoDataProvider: DataProvider = {
     return { data: params.ids as Identifier[] }
   },
   async delete(resource, params) {
-    const item = records(resource).find((record) => String(record.id) === String(params.id)) || { id: params.id }
-    const index = records(resource).indexOf(item)
-    if (index >= 0) records(resource).splice(index, 1)
+    const resourceRecords = await records(resource)
+    const item = resourceRecords.find((record) => String(record.id) === String(params.id)) || { id: params.id }
+    const index = resourceRecords.indexOf(item)
+    if (index >= 0) resourceRecords.splice(index, 1)
     return { data: item as never }
   },
   async deleteMany(resource, params) {
-    demoData[resource] = records(resource).filter((item) => !params.ids.map(String).includes(String(item.id)))
+    const demoData = await loadDemoData()
+    demoData[resource] = (await records(resource)).filter((item) => !params.ids.map(String).includes(String(item.id)))
     return { data: params.ids as Identifier[] }
   },
 }

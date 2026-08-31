@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:production": "npm run build && npm run verify:production-bundle",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
+    "verify:production-bundle": "node scripts/verify-production-bundle.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
