@@ -134,6 +134,34 @@
 .session-revoke-note { margin: -5px 0 18px; border-radius: 12px !important; font-size: 11px; }
 .account-loading { min-height: calc(100vh - 64px); display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--mui-palette-text-secondary); }
 
+/* Public landing and portal access */
+.public-page { min-height: 100vh; background: #f7f8f2; color: #15171b; }
+.public-header { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.public-header .MuiButton-root { font-weight: 720; text-transform: none; }
+.public-logo.MuiButton-root { color: #15171b; font-weight: 900; font-size: 16px; letter-spacing: .08em; padding-left: 0; }
+.public-logo-mark { width: 32px; height: 32px; display: inline-grid; place-items: center; margin-right: 8px; background: #c8f169; color: #15171b; border-radius: 10px; transform: rotate(-7deg); letter-spacing: 0; }
+.public-logo-mark::first-letter { transform: rotate(7deg); }
+.public-header .MuiButton-contained, .public-hero .MuiButton-contained, .public-auth-card .MuiButton-contained { background: #17191f; color: #fff; border-radius: 10px; box-shadow: none; }
+.public-header .MuiButton-contained:hover, .public-hero .MuiButton-contained:hover, .public-auth-card .MuiButton-contained:hover { background: #30343a; box-shadow: none; }
+.public-hero { min-height: 585px; padding: 52px 0 66px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr); align-items: center; gap: 48px; }
+.public-eyebrow { color: #527614; font-size: 10px !important; font-weight: 850 !important; letter-spacing: .16em !important; }
+.public-hero h1 { margin: 16px 0 21px; max-width: 650px; font-size: clamp(43px, 6vw, 78px); line-height: .96; letter-spacing: -.07em; font-weight: 860; }
+.public-hero h1 em { color: #669c11; font-family: Georgia, serif; font-weight: 500; }
+.public-lead { max-width: 545px; color: #62666b; font-size: 17px !important; line-height: 1.65 !important; }
+.public-hero-actions { margin-top: 30px; }
+.public-hero-actions .MuiButton-root { min-height: 52px; border-radius: 11px; text-transform: none; font-weight: 750; }
+.public-hero-actions .MuiButton-outlined { color: #17191f; border-color: #cdd0c6; }
+.public-proof { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; margin-top: 42px; }
+.public-proof strong { font-size: 19px; letter-spacing: -.03em; }.public-proof span { font-size: 12px; color: #74777b; margin-right: 14px; }
+.public-hero-art { position: relative; height: 435px; overflow: hidden; border-radius: 36px; background: #17191f; box-shadow: 0 24px 70px rgba(23,25,31,.18); }
+.hero-glyph { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; color: #c8f169; font-size: clamp(180px, 25vw, 300px); font-weight: 900; letter-spacing: -.18em; transform: translateX(-.08em) rotate(-9deg); }
+.orbit { position: absolute; z-index: 0; border: 1px solid rgba(200,241,105,.25); border-radius: 50%; }.orbit-one { width: 500px; height: 500px; left: -160px; top: -130px; }.orbit-two { width: 390px; height: 390px; right: -170px; bottom: -160px; box-shadow: 0 0 0 56px rgba(200,241,105,.035); }
+.hero-card { position: absolute; z-index: 2; display: grid; gap: 13px; padding: 18px; min-width: 145px; border-radius: 16px; background: rgba(255,255,255,.95); box-shadow: 0 14px 30px rgba(0,0,0,.18); }.hero-card span { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: #c8f169; }.hero-card strong { font-size: 12px; }.card-one { right: 25px; top: 47px; transform: rotate(6deg); }.card-two { left: 22px; bottom: 43px; transform: rotate(-5deg); }
+.public-value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-bottom: 65px; }.public-value-card { padding: 24px; border: 1px solid #e1e4d9; border-radius: 18px !important; box-shadow: none !important; background: rgba(255,255,255,.7) !important; }.public-value-card svg { color: #679b15; margin-bottom: 20px; }.public-value-card h6 { font-weight: 800; margin-bottom: 7px; }.public-value-card p { color: #73767b; font-size: 13px; line-height: 1.55; }
+.public-auth-page { background: radial-gradient(circle at 92% 12%, rgba(200,241,105,.48), transparent 23%), #f7f8f2; }.public-auth-card { padding: clamp(26px, 5vw, 48px); margin: 40px 0 70px; border: 1px solid #e1e4d9; border-radius: 23px !important; box-shadow: 0 24px 70px rgba(29,32,28,.08) !important; }.public-auth-card > h1 { font-size: clamp(31px, 4vw, 45px); line-height: 1; letter-spacing: -.055em; font-weight: 830; margin: 13px 0 10px; }.public-auth-card .MuiAlert-root { margin-top: 22px; }.role-tabs { margin-top: 30px; border: 1px solid #e0e2da; border-radius: 12px; min-height: 48px; }.role-tabs .MuiTab-root { min-height: 48px; text-transform: none; font-size: 12px; font-weight: 740; }.admin-login-note { display: grid; gap: 16px; margin-top: 26px; padding: 20px; border-radius: 14px; background: #f2f4ed; color: #5c6065; }.admin-login-note svg { color: #597f18; }.auth-footnote { margin-top: 22px; color: #777b80; font-size: 12px !important; line-height: 1.6 !important; }.auth-footnote .MuiButton-root { min-width: auto; padding: 0 0 1px; text-transform: none; font-size: inherit; vertical-align: baseline; }.step-progress { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 25px; }.step-progress span { height: 5px; border-radius: 99px; background: #e1e4db; }.step-progress span.active { background: #9bcf38; }
+
+@media (max-width: 760px) { .public-header { min-height: 70px; }.public-hero { grid-template-columns: 1fr; padding-top: 34px; gap: 36px; }.public-hero-art { height: 330px; }.public-value-grid { grid-template-columns: 1fr; }.public-header .MuiButton-root { font-size: 12px; }.public-logo.MuiButton-root { font-size: 14px; }.public-hero h1 { font-size: clamp(40px, 13vw, 62px); }.public-lead { font-size: 15px !important; }.card-one { right: 14px; top: 28px; }.card-two { left: 14px; bottom: 28px; } }
+
 .login-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(460px, 1.1fr) minmax(440px, .9fr); background: #f6f7f3; color: #17191f; }
 .login-story { position: relative; padding: 48px clamp(40px, 6vw, 92px); background: #17191f; color: #f5f6f0; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
 .login-story:before { content: ''; position: absolute; width: 520px; height: 520px; right: -170px; top: 8%; border: 1px solid rgba(183,243,74,.18); border-radius: 50%; box-shadow: 0 0 0 80px rgba(183,243,74,.025), 0 0 0 160px rgba(183,243,74,.018); }

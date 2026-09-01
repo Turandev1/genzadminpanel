@@ -59,6 +59,9 @@ export const resourceContracts: ResourceContract[] = [
   contract({ name: 'ambassador-applications', label: 'Ambassador müraciətləri', singular: 'Müraciət', path: '/admin/ambassador-applications', group: 'operations', readPermission: 'ops.ambassadors.read', writePermission: 'ops.ambassadors.review', accent: '#FF9C77', description: 'Ambassador qəbul və dayandırma axını', recordLabel: 'name', fields: [
     { source: 'name', label: 'Namizəd' }, { source: 'city', label: 'Şəhər' }, { source: 'followers', label: 'Auditoriya', kind: 'number' }, { source: 'created_at', label: 'Müraciət', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
+  contract({ name: 'fraud-reviews', label: 'Referral fraud icmalı', singular: 'Fraud icmalı', path: '/admin/fraud-reviews', group: 'operations', readPermission: 'ops.referrals.read', writePermission: 'ops.referrals.review', supportsShow: false, accent: '#FF6F91', description: 'Maskalanmış referral məlumatı, izahlı risk xalı və manual qərar növbəsi', recordLabel: 'referral_id', fields: [
+    { source: 'ambassador_name', label: 'Ambassador' }, { source: 'referred_user', label: 'Referral istifadəçi' }, { source: 'risk_score', label: 'Risk xalı', kind: 'number' }, { source: 'reason_codes', label: 'Səbəb kodları' }, { source: 'rule_version', label: 'Qayda versiyası' }, { source: 'created_at', label: 'Növbəyə düşüb', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
+  ] }),
   contract({ name: 'partner-organizations', label: 'Partner təşkilatları', singular: 'Partner təşkilatı', path: '/admin/partner-organizations', group: 'operations', readPermission: 'ops.partners.read', writePermission: 'ops.partners.review', supportsShow: false, accent: '#72E6B1', description: 'Partner approval, owner və lifecycle vəziyyəti', recordLabel: 'name', fields: [
 	{ source: 'name', label: 'Təşkilat' }, { source: 'slug', label: 'Slug' }, { source: 'owners_count', label: 'Owner', kind: 'number' }, { source: 'members_count', label: 'Üzvlər', kind: 'number' }, { source: 'status', label: 'Status', kind: 'status' }, { source: 'updated_at', label: 'Yenilənib', kind: 'date' },
   ] }),
@@ -91,11 +94,11 @@ export const resourceContractMap = new Map(resourceContracts.map((item) => [item
 // resources whose API endpoints are implemented in the production backend;
 // otherwise React Admin interprets an API failure as an expired session and
 // redirects the operator to login.
-const implementedResourceNames = new Set(['clubs', 'events', 'partner-organizations', 'audit-events'])
+const implementedResourceNames = new Set(['clubs', 'events', 'partner-organizations', 'audit-events', 'fraud-reviews'])
 
 export const implementedResourceContracts = resourceContracts
   .filter(({ name }) => implementedResourceNames.has(name))
-  .map((contract) => contract.name === 'clubs' ? contract : {
+  .map((contract) => ['clubs', 'fraud-reviews'].includes(contract.name) ? contract : {
     ...contract,
     createPermission: undefined,
     writePermission: undefined,

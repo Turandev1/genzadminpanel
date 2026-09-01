@@ -28,6 +28,7 @@ const icons: Record<string, ReactElement> = {
   'audit-events': <HistoryOutlinedIcon />, roles: <SecurityOutlinedIcon />, sessions: <SecurityOutlinedIcon />, payouts: <PaymentsOutlinedIcon />,
   settings: <SettingsOutlinedIcon />, backups: <CloudOutlinedIcon />,
 	'partner-organizations': <BusinessOutlinedIcon />,
+	'fraud-reviews': <SecurityOutlinedIcon />,
 }
 
 const groups = [

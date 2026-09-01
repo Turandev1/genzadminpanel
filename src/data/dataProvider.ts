@@ -144,3 +144,8 @@ export async function publishResource(resource: string, id: Identifier): Promise
   }
   return apiRequest<RaRecord>(`${contractFor(resource).path}/${id}/publish`, { method: 'POST' })
 }
+
+export async function decideFraudReview(id: Identifier, decision: 'approve' | 'reject' | 'reverse', reason: string, mfaCode: string): Promise<void> {
+  await apiRequest('/admin/mfa/step-up', { method: 'POST', body: { code: mfaCode } })
+  await apiRequest(`/admin/fraud-reviews/${encodeURIComponent(String(id))}/decision`, { method: 'POST', body: { decision, reason } })
+}

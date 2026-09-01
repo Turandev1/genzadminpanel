@@ -21,7 +21,7 @@ const pages = Object.fromEntries(
 )
 
 export default function App() {
-	const basename = window.location.pathname.startsWith('/internal') ? '/internal' : ''
+	const basename = window.location.pathname.startsWith('/internal') ? '/internal' : '/admin'
   return (
     <Admin
 	  basename={basename}

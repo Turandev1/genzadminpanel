@@ -2,15 +2,16 @@
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PublishIcon from '@mui/icons-material/Publish'
-import { Box, Button, Chip, Stack, Typography } from '@mui/material'
-import { useState } from 'react'
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
   Create, CreateButton, Datagrid, DateTimeInput, Edit, EditButton, FunctionField, List, ListButton, NumberInput,
   SearchInput, SelectInput, Show, ShowButton, SimpleForm, SimpleShowLayout, TextInput, TopToolbar,
   useNotify, usePermissions, useRecordContext, useRefresh, type RaRecord,
 } from 'react-admin'
-import { publishResource } from '../data/dataProvider'
+import { decideFraudReview, publishResource } from '../data/dataProvider'
+import { apiRequest } from '../data/httpClient'
 import { canAccess, type ResourceContract, type ResourceField } from '../data/resourceRegistry'
 
 const statusLabels: Record<string, string> = { active: 'Aktiv', inactive: 'Qaralama', published: 'Yayımlanıb', draft: 'Draft', archived: 'Arxiv', pending: 'Gözləyir', approved: 'Təsdiqlənib', paid: 'Ödənib', completed: 'Tamamlandı', failed: 'Uğursuz', open: 'Açıq', reviewing: 'İcmalda', resolved: 'Həll edilib', suspended: 'Dayandırılıb', blocked: 'Bloklanıb', success: 'Uğurlu', available: 'Hazır', verified: 'Təsdiqli', configured: 'Qurulub', secret: 'Məxfi', critical: 'Kritik', high: 'Yüksək', medium: 'Orta', low: 'Aşağı', review: 'İcmal' }
@@ -79,8 +80,58 @@ function PublishClubButton() {
   return <Button onClick={publish} disabled={pending} startIcon={<PublishIcon />} variant="contained">Yayımla</Button>
 }
 
+function FraudDecisionButton() {
+  const record = useRecordContext<RaRecord>()
+  const { permissions } = usePermissions<string[]>()
+  const notify = useNotify()
+  const refresh = useRefresh()
+  const [open, setOpen] = useState(false)
+  const [decision, setDecision] = useState<'approve' | 'reject'>('approve')
+  const [reason, setReason] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [pending, setPending] = useState(false)
+  if (!record || !canAccess(permissions, 'ops.referrals.review')) return null
+  const submit = async () => {
+    setPending(true)
+    try {
+      await decideFraudReview(record.id, decision, reason.trim(), mfaCode.trim())
+      notify(decision === 'approve' ? 'Referral təsdiqləndi və qualification yenidən başladıldı' : 'Referral rədd edildi', { type: 'success' })
+      setOpen(false)
+      refresh()
+    } catch (caught) {
+      notify(caught instanceof Error ? caught.message : 'Qərarı saxlamaq mümkün olmadı', { type: 'error' })
+    } finally {
+      setPending(false)
+    }
+  }
+  return <>
+    <Button size="small" variant="outlined" onClick={() => setOpen(true)}>Qərar ver</Button>
+    <Dialog open={open} onClose={() => !pending && setOpen(false)} fullWidth maxWidth="sm">
+      <DialogTitle>Fraud icmalı — risk {String(record.risk_score)}</DialogTitle>
+      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+        <TextField select label="Qərar" value={decision} onChange={(event) => setDecision(event.target.value as 'approve' | 'reject')}>
+          <MenuItem value="approve">Təsdiqlə</MenuItem><MenuItem value="reject">Rədd et</MenuItem>
+        </TextField>
+        <TextField label="Audit səbəbi" value={reason} onChange={(event) => setReason(event.target.value)} multiline minRows={3} slotProps={{ htmlInput: { maxLength: 500 } }} required />
+        <TextField label="MFA kodu" value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" required />
+        <Typography variant="caption">Qərar actor, request ID və səbəblə audit izinə yazılır. Raw telefon, IP və cihaz məlumatı göstərilmir.</Typography>
+      </Stack></DialogContent>
+      <DialogActions><Button onClick={() => setOpen(false)} disabled={pending}>Ləğv et</Button><Button onClick={submit} disabled={pending || reason.trim().length < 3 || mfaCode.length !== 6} variant="contained">Təsdiqlə</Button></DialogActions>
+    </Dialog>
+  </>
+}
+
+function FraudMetrics() {
+  const [metrics, setMetrics] = useState<{ pending: number; approved: number; rejected: number; false_positive_rate: number } | null>(null)
+  useEffect(() => { void apiRequest<typeof metrics>('/admin/referrals/metrics').then(setMetrics).catch(() => undefined) }, [])
+  if (!metrics) return null
+  return <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 2 }}>
+    <Chip label={`Review növbəsi: ${metrics.pending}`} /><Chip label={`Manual qəbul: ${metrics.approved}`} color="success" /><Chip label={`Manual rədd: ${metrics.rejected}`} color="error" /><Chip label={`False-positive proxy: ${(metrics.false_positive_rate * 100).toFixed(1)}%`} color="warning" />
+  </Stack>
+}
+
 export function createResourcePages(contract: ResourceContract) {
-  const ListPage = () => <PermissionGate permission={contract.readPermission}><Box className="resource-page"><Box className="resource-heading" sx={{ '--resource-accent': contract.accent }}><Box><Typography className="resource-kicker">{contract.group}</Typography><Typography component="h1">{contract.label}</Typography><Typography>{contract.description}</Typography></Box></Box><List title={contract.label} perPage={25} sort={{ field: contract.fields.find((field) => field.kind === 'date')?.source || 'id', order: 'DESC' }} filters={[<SearchInput key="q" source="q" placeholder="Axtar…" alwaysOn />, <SelectInput key="status" source="status" label="Status" choices={['active', 'inactive', 'pending', 'draft', 'published', 'archived', 'failed'].map((id) => ({ id, name: statusLabels[id] }))} />]} actions={<ListActions contract={contract} />} empty={false}><Datagrid bulkActionButtons={false} rowClick={contract.supportsShow === false ? false : 'show'} className="resource-table">{contract.fields.map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.supportsShow !== false && <ShowButton label="Bax" />}<PermissionedEditButton contract={contract} /></Datagrid></List></Box></PermissionGate>
+  const ListPage = () => <PermissionGate permission={contract.readPermission}><Box className="resource-page"><Box className="resource-heading" sx={{ '--resource-accent': contract.accent }}><Box><Typography className="resource-kicker">{contract.group}</Typography><Typography component="h1">{contract.label}</Typography><Typography>{contract.description}</Typography>{contract.name === 'fraud-reviews' && <FraudMetrics />}</Box></Box><List title={contract.label} perPage={25} sort={{ field: contract.fields.find((field) => field.kind === 'date')?.source || 'id', order: 'DESC' }} filters={[<SearchInput key="q" source="q" placeholder="Axtar…" alwaysOn />, <SelectInput key="status" source="status" label="Status" choices={['active', 'inactive', 'pending', 'draft', 'published', 'archived', 'failed'].map((id) => ({ id, name: statusLabels[id] }))} />]} actions={<ListActions contract={contract} />} empty={false}><Datagrid bulkActionButtons={false} rowClick={contract.supportsShow === false ? false : 'show'} className="resource-table">{contract.fields.map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.name === 'fraud-reviews' && <FraudDecisionButton />}{contract.supportsShow !== false && <ShowButton label="Bax" />}{contract.name !== 'fraud-reviews' && <PermissionedEditButton contract={contract} />}</Datagrid></List></Box></PermissionGate>
 
   const ShowPage = () => <PermissionGate permission={contract.readPermission}><Show title={contract.singular} actions={<ShowActions contract={contract} />}><Box className="detail-shell"><Box className="detail-accent" sx={{ background: contract.accent }} /><Typography className="resource-kicker">{contract.singular} məlumatı</Typography><SimpleShowLayout>{contract.fields.map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.name === 'clubs' && <PublishClubButton />}</SimpleShowLayout></Box></Show></PermissionGate>
 

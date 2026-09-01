@@ -1,16 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './App.css'
 
 async function loadShell() {
   const path = window.location.pathname
-  if (path === '/ambassador' || path.startsWith('/ambassador/')) {
-    return (await import('./apps/ambassador/AmbassadorApp')).default
+  if (path === '/admin' || path.startsWith('/admin/') || path === '/internal' || path.startsWith('/internal/')) {
+    return (await import('./App')).default
   }
-  if (path === '/partner' || path.startsWith('/partner/')) {
-    return (await import('./apps/partner/PartnerApp')).default
-  }
-  return (await import('./App')).default
+  return (await import('./apps/PortalShell')).default
 }
 
 const Shell = await loadShell()
