@@ -93,7 +93,7 @@ export function LoginPage() {
           <Typography component="h2">Xoş gəldiniz</Typography>
           <Typography className="login-description">
             {mfaStage
-              ? "Authenticator tətbiqindəki 6 rəqəmli kodu daxil edin."
+              ? "Authenticator tətbiqindəki 6 rəqəmli kodu və ya saxladığınız birdəfəlik recovery code-u daxil edin."
               : "Davam etmək üçün iş hesabınızla daxil olun."}
           </Typography>
           {error && <Alert severity="error">{error}</Alert>}
@@ -136,16 +136,22 @@ export function LoginPage() {
             </>
           ) : (
             <TextField
-              label="MFA kodu"
+              label="MFA və ya recovery code"
               value={mfaCode}
               onChange={(event) =>
-                setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                setMfaCode(
+                  event.target.value
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9_-]/g, "")
+                    .slice(0, 11),
+                )
               }
               required
               fullWidth
               autoFocus
+              helperText="6 rəqəmli TOTP və ya birdəfəlik recovery code"
               slotProps={{
-                htmlInput: { inputMode: "numeric", pattern: "[0-9]{6}" },
+                htmlInput: { inputMode: "text", autoCapitalize: "characters" },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
