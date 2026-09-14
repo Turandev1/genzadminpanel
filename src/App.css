@@ -61,6 +61,7 @@
 .metric-card > div:last-child span { color: #16835a; font-weight: 750; margin-right: 4px; }
 
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, .85fr); gap: 16px; margin-bottom: 16px; }
+.dashboard-empty { min-height: 164px; display: grid; place-items: center; text-align: center; color: #73767d; font-size: 14px; padding: 24px; }
 .performance-card, .queue-card, .activity-card { padding: 22px; border-color: var(--mui-palette-divider) !important; }
 .card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .card-heading h2 { font-size: 16px; font-weight: 760; letter-spacing: -.02em; margin-bottom: 3px; }

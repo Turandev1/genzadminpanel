@@ -1,70 +1,123 @@
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import ReplayOutlinedIcon from '@mui/icons-material/ReplayOutlined'
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined'
-import { Avatar, Box, Button, Card, Chip, IconButton, LinearProgress, Stack, Typography } from '@mui/material'
-import { useMemo } from 'react'
+import { Alert, Avatar, Box, Button, Card, Chip, LinearProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGetIdentity } from 'react-admin'
 import { sessionStore } from '../auth/session'
+import { apiRequest } from '../data/httpClient'
 
-type Metric = { label: string; value: string; delta: string; detail: string; color: string; icon: React.ReactNode }
+type DashboardMetric = { key: string; value: number }
+type DashboardTrendPoint = { label: string; value: number }
+type DashboardQueue = { key: string; value: number }
+type DashboardActivity = { id: string; actor_name: string; action: string; resource: string; occurred_at: string; outcome: string }
+type DashboardData = { generated_at: string; metrics: DashboardMetric[]; trend: DashboardTrendPoint[]; queues: DashboardQueue[]; activity: DashboardActivity[] }
 
 const roleContent = {
-  superadmin: { title: 'Platform pulse', subtitle: 'Sistem, growth və risk siqnallarının vahid görünüşü.', badge: 'SUPERADMIN', metrics: [
-    { label: 'Aktiv istifadəçilər', value: '24,892', delta: '+12.4%', detail: 'son 30 gündə', color: '#B7F34A', icon: <GroupOutlinedIcon /> },
-    { label: 'Aylıq gəlir', value: '₼48.2K', delta: '+8.7%', detail: 'keçən aya qarşı', color: '#72E6B1', icon: <ArrowUpwardIcon /> },
-    { label: 'Yaxın tədbirlər', value: '38', delta: '12 yeni', detail: 'bu həftə', color: '#8EDBFF', icon: <CalendarMonthOutlinedIcon /> },
-    { label: 'Risk siqnalları', value: '3', delta: '2 yüksək', detail: 'diqqət tələb edir', color: '#FF8394', icon: <SecurityOutlinedIcon /> },
-  ] },
-  admin: { title: 'Əməliyyat mərkəzi', subtitle: 'Prioritet növbələr və platformanın gündəlik sağlamlığı.', badge: 'ADMIN', metrics: [
-    { label: 'Açıq şikayətlər', value: '23', delta: '−8.1%', detail: 'keçən həftəyə qarşı', color: '#FF9C77', icon: <SecurityOutlinedIcon /> },
-    { label: 'Gözləyən müraciət', value: '14', delta: '6 yeni', detail: 'son 24 saat', color: '#FFD66B', icon: <CampaignOutlinedIcon /> },
-    { label: 'Aktiv istifadəçilər', value: '8,491', delta: '+6.2%', detail: 'bu gün', color: '#B7F34A', icon: <GroupOutlinedIcon /> },
-    { label: 'Uğursuz işlər', value: '3', delta: '1 kritik', detail: 'retry mümkündür', color: '#FF8394', icon: <SecurityOutlinedIcon /> },
-  ] },
-} satisfies Record<string, { title: string; subtitle: string; badge: string; metrics: Metric[] }>
+  superadmin: { title: 'Platform pulse', subtitle: 'Sistem, growth və risk siqnallarının vahid görünüşü.', badge: 'SUPERADMIN' },
+  admin: { title: 'Əməliyyat mərkəzi', subtitle: 'Prioritet növbələr və platformanın gündəlik sağlamlığı.', badge: 'ADMIN' },
+} satisfies Record<string, { title: string; subtitle: string; badge: string }>
 
-const chartValues = [42, 54, 49, 62, 57, 73, 69, 81, 76, 86, 78, 92]
-const activity = [
-  { initials: 'AQ', name: 'Aysel Quliyeva', action: 'istifadəçi statusunu aktivləşdirdi', target: 'Nihad Abbasov', time: '4 dəq', color: '#FF9C77' },
-  { initials: 'NM', name: 'Nərgiz Məmmədli', action: 'tədbiri yayımladı', target: 'Design after dark', time: '18 dəq', color: '#8EDBFF' },
-  { initials: 'S', name: 'Sistem', action: 'şübhəli sessiyanı blokladı', target: 'reuse detection', time: '42 dəq', color: '#FF8394' },
-  { initials: 'LƏ', name: 'Leyla Əliyeva', action: 'tapşırıq sübutu göndərdi', target: 'Campus event recap', time: '1 saat', color: '#C6A7FF' },
-]
+const metricMeta: Record<string, { label: string; color: string; icon: React.ReactNode; format?: 'currency' }> = {
+  active_users: { label: 'Aktiv hesablar', color: '#B7F34A', icon: <GroupOutlinedIcon /> },
+  month_revenue_minor: { label: 'Aylıq gəlir', color: '#72E6B1', icon: <CampaignOutlinedIcon />, format: 'currency' },
+  upcoming_events: { label: 'Yaxın tədbirlər', color: '#8EDBFF', icon: <CalendarMonthOutlinedIcon /> },
+  open_reports: { label: 'Açıq şikayətlər', color: '#FF9C77', icon: <SecurityOutlinedIcon /> },
+  pending_ambassadors: { label: 'Gözləyən müraciətlər', color: '#FFD66B', icon: <CampaignOutlinedIcon /> },
+  pending_fraud_reviews: { label: 'Risk siqnalları', color: '#FF8394', icon: <SecurityOutlinedIcon /> },
+  failed_jobs: { label: 'Uğursuz işlər', color: '#FF8394', icon: <ReplayOutlinedIcon /> },
+}
+
+const queueMeta: Record<string, { label: string; color: string; to?: string }> = {
+  pending_fraud_reviews: { label: 'Fraud review növbəsi', color: '#FF8394', to: '/fraud-reviews' },
+  pending_ambassadors: { label: 'Ambassador müraciətləri', color: '#FFD66B' },
+  open_reports: { label: 'Açıq şikayətlər', color: '#FF9C77' },
+  failed_jobs: { label: 'Uğursuz fon işləri', color: '#FF8394' },
+}
+
+function formatMetric(metric: DashboardMetric) {
+  if (metricMeta[metric.key]?.format === 'currency') return new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 2 }).format(metric.value / 100)
+  return new Intl.NumberFormat('az-AZ').format(metric.value)
+}
+
+function relativeTime(value: string) {
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000))
+  if (seconds < 60) return 'indi'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} dəq əvvəl`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} saat əvvəl`
+  return `${Math.floor(seconds / 86400)} gün əvvəl`
+}
 
 export function Dashboard() {
   const { identity } = useGetIdentity()
   const role = sessionStore.getContext()?.roles[0] || 'admin'
   const content = roleContent[role as keyof typeof roleContent] || roleContent.admin
   const greeting = useMemo(() => new Date().getHours() < 12 ? 'Sabahınız xeyir' : new Date().getHours() < 18 ? 'Günortanız xeyir' : 'Axşamınız xeyir', [])
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
+    setError(false)
+    try { setData(await apiRequest<DashboardData>('/admin/dashboard')) } catch { setData(null); setError(true) } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void apiRequest<DashboardData>('/admin/dashboard').then(
+      (response) => { if (active) setData(response) },
+      () => { if (active) setError(true) },
+    ).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  const maximumTrendValue = Math.max(...(data?.trend.map((point) => point.value) || []), 1)
 
   return (
     <Box className="dashboard-page">
       <Box className="dashboard-header">
-        <Box><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Chip label={content.badge} size="small" className="role-chip" /><span className="live-label"><i /> CANLI</span></Stack><Typography component="h1">{greeting}, {String(identity?.fullName || 'operator').split(' ')[0]}.</Typography><Typography>{content.subtitle}</Typography></Box>
-		<Stack direction="row" spacing={1}><Button variant="outlined" component={Link} to="/audit-events">Audit izi</Button><Button variant="contained" endIcon={<ArrowForwardIcon />} component={Link} to="/reports">Növbəni aç</Button></Stack>
+        <Box><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Chip label={content.badge} size="small" className="role-chip" />{!loading && !error && <span className="live-label"><i /> CANLI</span>}</Stack><Typography component="h1">{greeting}, {String(identity?.fullName || 'operator').split(' ')[0]}.</Typography><Typography>{content.subtitle}</Typography></Box>
+        <Button variant="outlined" component={Link} to="/audit-events">Audit izi</Button>
       </Box>
 
-      <Box className="metrics-grid">{content.metrics.map((metric) => <Card className="metric-card" key={metric.label}><Box className="metric-icon" sx={{ backgroundColor: metric.color }}>{metric.icon}</Box><Typography>{metric.label}</Typography><strong>{metric.value}</strong><Box><span>{metric.delta}</span> {metric.detail}</Box></Card>)}</Box>
+      {error && <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => void loadDashboard()}>Yenidən yoxla</Button>}>Dashboard məlumatları yüklənmədi. Məlumat dəyişdirilməyib.</Alert>}
+
+      <Box className="metrics-grid">
+        {loading && Array.from({ length: 4 }, (_, index) => <Card className="metric-card" key={index}><Skeleton variant="rounded" width={40} height={40} /><Skeleton width="65%" /><Skeleton width="42%" height={42} /></Card>)}
+        {!loading && data?.metrics.map((metric) => {
+          const meta = metricMeta[metric.key]
+          if (!meta) return null
+          return <Card className="metric-card" key={metric.key}><Box className="metric-icon" sx={{ backgroundColor: meta.color }}>{meta.icon}</Box><Typography>{meta.label}</Typography><strong>{formatMetric(metric)}</strong><Box><span>Canlı aggregate</span></Box></Card>
+        })}
+      </Box>
+
+      {!loading && !error && data?.metrics.length === 0 && <Alert severity="info">Bu rol üçün görünə bilən dashboard göstəricisi yoxdur.</Alert>}
 
       <Box className="dashboard-grid">
         <Card className="performance-card">
-          <Box className="card-heading"><Box><Typography component="h2">{content.title}</Typography><Typography>Son 12 həftənin əsas platform siqnalı</Typography></Box><Stack direction="row" spacing={1}><Chip label="12 həftə" variant="outlined" /><IconButton><MoreHorizIcon /></IconButton></Stack></Box>
-		  <Box className="chart-summary"><strong>68.4K</strong><span><ArrowUpwardIcon /> 14.8%</span></Box>
-          <Box className="bar-chart" aria-label="12 həftəlik performans qrafiki">{chartValues.map((value, index) => <Box key={index} className="bar-column"><span style={{ height: `${value}%` }} /><small>{index % 2 === 0 ? `${index + 1}h` : ''}</small></Box>)}</Box>
+          <Box className="card-heading"><Box><Typography component="h2">{content.title}</Typography><Typography>Son 12 həftədə yeni qeydiyyatlar</Typography></Box></Box>
+          {loading ? <Skeleton variant="rounded" height={220} /> : data?.trend.length ? <Box className="bar-chart" aria-label="12 həftəlik yeni qeydiyyatlar qrafiki">{data.trend.map((point) => <Box key={point.label} className="bar-column" title={`${point.label}: ${point.value}`}><span style={{ height: `${Math.max((point.value / maximumTrendValue) * 100, point.value ? 3 : 0)}%` }} /><small>{point.label}</small></Box>)}</Box> : <Box className="dashboard-empty">Bu qrafiki görmək üçün istifadəçi oxuma icazəsi tələb olunur.</Box>}
         </Card>
         <Card className="queue-card">
-          <Box className="card-heading"><Box><Typography component="h2">Bu günün fokusları</Typography><Typography>Prioritetləşdirilmiş əməliyyat növbəsi</Typography></Box><Chip label="8 açıq" className="soft-warning" /></Box>
-          {[{ label: 'Yüksək prioritetli şikayətlər', value: 6, progress: 72, color: '#FF8394', to: '/reports' }, { label: 'Ambassador müraciətləri', value: 14, progress: 54, color: '#FFD66B', to: '/ambassador-applications' }, { label: 'Publish gözləyən tədbirlər', value: 4, progress: 38, color: '#8EDBFF', to: '/events' }].map((item) => <Box className="queue-row" key={item.label} component={Link} to={item.to}><Box><span className="queue-dot" style={{ background: item.color }} /><Typography>{item.label}</Typography><strong>{item.value}</strong></Box><LinearProgress variant="determinate" value={item.progress} sx={{ '& .MuiLinearProgress-bar': { backgroundColor: item.color } }} /></Box>)}
-          <Button endIcon={<ArrowForwardIcon />} fullWidth component={Link} to="/reports">Bütün növbəni göstər</Button>
+          <Box className="card-heading"><Box><Typography component="h2">Bu günün fokusları</Typography><Typography>İcazəniz daxilindəki aktiv növbələr</Typography></Box></Box>
+          {loading && <Stack spacing={2}><Skeleton height={48} /><Skeleton height={48} /><Skeleton height={48} /></Stack>}
+          {!loading && data?.queues.map((queue) => {
+            const meta = queueMeta[queue.key]
+            if (!meta) return null
+            const queueContent = <><Box><span className="queue-dot" style={{ background: meta.color }} /><Typography>{meta.label}</Typography><strong>{new Intl.NumberFormat('az-AZ').format(queue.value)}</strong></Box><LinearProgress variant="determinate" value={queue.value > 0 ? 100 : 0} sx={{ '& .MuiLinearProgress-bar': { backgroundColor: meta.color } }} /></>
+            return meta.to ? <Box className="queue-row" key={queue.key} component={Link} to={meta.to}>{queueContent}</Box> : <Box className="queue-row" key={queue.key}>{queueContent}</Box>
+          })}
+          {!loading && data?.queues.length === 0 && <Box className="dashboard-empty">Aktiv növbə yoxdur və ya bu növbələr üçün icazəniz yoxdur.</Box>}
         </Card>
       </Box>
 
-      <Card className="activity-card"><Box className="card-heading"><Box><Typography component="h2">Son fəaliyyət</Typography><Typography>Platformada təhlükəsiz və izlənə bilən dəyişikliklər</Typography></Box><Button component={Link} to="/audit-events">Hamısına bax</Button></Box><Box className="activity-list">{activity.map((item) => <Box className="activity-row" key={`${item.name}-${item.time}`}><Avatar sx={{ bgcolor: item.color, color: '#17191F' }}>{item.initials}</Avatar><Box><Typography><strong>{item.name}</strong> {item.action}</Typography><span>{item.target}</span></Box><time>{item.time} əvvəl</time></Box>)}</Box></Card>
+      <Card className="activity-card"><Box className="card-heading"><Box><Typography component="h2">Son fəaliyyət</Typography><Typography>Platformada təhlükəsiz və izlənə bilən dəyişikliklər</Typography></Box><Button component={Link} to="/audit-events">Hamısına bax</Button></Box>
+        {loading && <Stack spacing={2}>{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} height={44} />)}</Stack>}
+        {!loading && data?.activity.length ? <Box className="activity-list">{data.activity.map((item) => <Box className="activity-row" key={item.id}><Avatar sx={{ bgcolor: item.outcome === 'failed' ? '#FF8394' : '#8EDBFF', color: '#17191F' }}>{item.actor_name.slice(0, 2).toUpperCase()}</Avatar><Box><Typography><strong>{item.actor_name}</strong> {item.action}</Typography><span>{item.resource}</span></Box><time>{relativeTime(item.occurred_at)}</time></Box>)}</Box> : !loading && <Box className="dashboard-empty">Son fəaliyyət üçün audit icazəsi yoxdur və ya hələ heç bir qeyd yaranmayıb.</Box>}
+      </Card>
     </Box>
   )
 }

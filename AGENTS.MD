@@ -9,3 +9,5 @@ Never read, search, print, modify, or upload these files:
 - *.p12
 - secrets/
 - credentials/
+- project_issues.md
+- system_structure.md
