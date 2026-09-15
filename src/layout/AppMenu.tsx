@@ -54,6 +54,10 @@ export function AppMenu() {
           </Box>
         )
       })}
+      {permissions?.includes('*') && <Box className="menu-group">
+        <Typography className="menu-group-label">Superadmin</Typography>
+        <MenuItemLink to="/admin-accounts" primaryText="Admin hesabları" leftIcon={<ManageAccountsOutlinedIcon />} />
+      </Box>}
       <Box className="menu-account-link">
         <MenuItemLink to="/account" primaryText="Hesab əməliyyatları" leftIcon={<ManageAccountsOutlinedIcon />} />
       </Box>

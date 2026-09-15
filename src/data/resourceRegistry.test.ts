@@ -21,6 +21,6 @@ describe('capability registry', () => {
   })
 
   it('only exposes backend-supported resources in production', () => {
-    expect(implementedResourceContracts.map(({ name }) => name)).toEqual(['clubs', 'events', 'fraud-reviews', 'partner-organizations', 'audit-events'])
+    expect(implementedResourceContracts.map(({ name }) => name)).toEqual(['clubs', 'events', 'users', 'ambassador-applications', 'fraud-reviews', 'partner-organizations', 'audit-events'])
   })
 })

@@ -9,6 +9,7 @@ import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './login/LoginPage'
 import { Dashboard } from './pages/Dashboard'
 import { AccountSettings } from './pages/AccountSettings'
+import { AdminAccounts } from './pages/AdminAccounts'
 import { MFAEnrollment } from './pages/MFAEnrollment'
 import { AccessDenied, NotFoundPage } from './pages/SystemPages'
 import { createResourcePages } from './resources/ResourcePages'
@@ -53,6 +54,7 @@ export default function App() {
       <CustomRoutes>
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/account" element={<AccountSettings />} />
+		<Route path="/admin-accounts" element={<AdminAccounts />} />
 		<Route path="/mfa-enroll" element={<MFAEnrollment />} />
       </CustomRoutes>
     </Admin>

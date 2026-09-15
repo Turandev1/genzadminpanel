@@ -5,6 +5,7 @@ export type ResourceField = {
   label: string
   kind?: FieldKind
   editable?: boolean
+  list?: boolean
 }
 
 export type ResourceContract = {
@@ -30,7 +31,12 @@ export const resourceContracts: ResourceContract[] = [
     { source: 'name', label: 'Klub', editable: true }, { source: 'city', label: 'Şəhər', editable: true }, { source: 'members_count', label: 'Üzvlər', kind: 'number' }, { source: 'events_count', label: 'Tədbirlər', kind: 'number' }, { source: 'status', label: 'Status', kind: 'status' }, { source: 'updated_at', label: 'Yenilənib', kind: 'date' },
   ] }),
   contract({ name: 'events', label: 'Tədbirlər', singular: 'Tədbir', path: '/admin/events', group: 'content', readPermission: 'content.events.read', writePermission: 'content.events.update', createPermission: 'content.events.create', accent: '#8EDBFF', description: 'Tədbir təqvimi, tutum, qeydiyyat və publish axını', recordLabel: 'title', fields: [
-    { source: 'title', label: 'Tədbir', editable: true }, { source: 'club_name', label: 'Klub' }, { source: 'starts_at', label: 'Başlayır', kind: 'date', editable: true }, { source: 'attendees_count', label: 'İştirakçı', kind: 'number' }, { source: 'capacity', label: 'Tutum', kind: 'number', editable: true }, { source: 'status', label: 'Status', kind: 'status', editable: true },
+    { source: 'title', label: 'Tədbir', editable: true }, { source: 'club_name', label: 'Klub' }, { source: 'club_id', label: 'Klub ID', editable: true, list: false }, { source: 'venue_id', label: 'Məkan ID', editable: true, list: false },
+    { source: 'description', label: 'Açıqlama', editable: true, list: false }, { source: 'cover_url', label: 'Cover URL', editable: true, list: false },
+    { source: 'starts_at', label: 'Başlayır', kind: 'date', editable: true }, { source: 'ends_at', label: 'Bitir', kind: 'date', editable: true, list: false },
+    { source: 'registration_type', label: 'Qeydiyyat', editable: true }, { source: 'price_minor', label: 'Qiymət', kind: 'money', editable: true, list: false }, { source: 'currency', label: 'Valyuta', editable: true, list: false },
+    { source: 'attendees_count', label: 'İştirakçı', kind: 'number' }, { source: 'capacity', label: 'Tutum', kind: 'number', editable: true }, { source: 'min_age', label: 'Minimum yaş', kind: 'number', editable: true, list: false }, { source: 'max_age', label: 'Maksimum yaş', kind: 'number', editable: true, list: false },
+    { source: 'rules', label: 'Qaydalar', editable: true, list: false }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
   contract({ name: 'attendees', label: 'İştirakçılar', singular: 'İştirakçı', path: '/admin/attendees', group: 'content', readPermission: 'content.attendees.read', accent: '#8EDBFF', description: 'Tədbir iştirakçıları və check-in vəziyyəti', recordLabel: 'name', fields: [
     { source: 'name', label: 'İştirakçı' }, { source: 'event_title', label: 'Tədbir' }, { source: 'joined_at', label: 'Qoşulub', kind: 'date' }, { source: 'ticket_code', label: 'Bilet' }, { source: 'status', label: 'Status', kind: 'status' },
@@ -51,13 +57,13 @@ export const resourceContracts: ResourceContract[] = [
     { source: 'title', label: 'Tapşırıq' }, { source: 'due_at', label: 'Son tarix', kind: 'date' }, { source: 'xp_reward', label: 'XP', kind: 'number' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
   contract({ name: 'users', label: 'İstifadəçilər', singular: 'İstifadəçi', path: '/admin/users', group: 'operations', readPermission: 'ops.users.read', writePermission: 'ops.users.update', accent: '#FF9C77', description: 'Hesab statusu, risk siqnalları və əməliyyat dəstəyi', recordLabel: 'name', fields: [
-    { source: 'name', label: 'İstifadəçi' }, { source: 'email', label: 'E-poçt', kind: 'email' }, { source: 'role', label: 'Rol' }, { source: 'created_at', label: 'Qoşulub', kind: 'date' }, { source: 'last_seen_at', label: 'Son aktivlik', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
+    { source: 'name', label: 'İstifadəçi' }, { source: 'email', label: 'E-poçt', kind: 'email' }, { source: 'role', label: 'Rol' }, { source: 'created_at', label: 'Qoşulub', kind: 'date' }, { source: 'last_seen_at', label: 'Son aktivlik', kind: 'date' }, { source: 'active_sessions', label: 'Sessiyalar', kind: 'number' }, { source: 'events_count', label: 'Tədbirlər', kind: 'number' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
   contract({ name: 'reports', label: 'Şikayətlər', singular: 'Şikayət', path: '/admin/reports', group: 'operations', readPermission: 'ops.reports.read', writePermission: 'ops.reports.review', accent: '#FF9C77', description: 'Moderasiya növbəsi və state machine', recordLabel: 'reference', fields: [
     { source: 'reference', label: 'İstinad' }, { source: 'reason', label: 'Səbəb' }, { source: 'reporter_name', label: 'Göndərən' }, { source: 'created_at', label: 'Tarix', kind: 'date' }, { source: 'priority', label: 'Prioritet', kind: 'status' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
-  contract({ name: 'ambassador-applications', label: 'Ambassador müraciətləri', singular: 'Müraciət', path: '/admin/ambassador-applications', group: 'operations', readPermission: 'ops.ambassadors.read', writePermission: 'ops.ambassadors.review', accent: '#FF9C77', description: 'Ambassador qəbul və dayandırma axını', recordLabel: 'name', fields: [
-    { source: 'name', label: 'Namizəd' }, { source: 'city', label: 'Şəhər' }, { source: 'followers', label: 'Auditoriya', kind: 'number' }, { source: 'created_at', label: 'Müraciət', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
+  contract({ name: 'ambassador-applications', label: 'Ambassador müraciətləri', singular: 'Müraciət', path: '/admin/ambassadors', group: 'operations', readPermission: 'ops.ambassadors.read', writePermission: 'ops.ambassadors.review', accent: '#FF9C77', description: 'Ambassador qəbul, referral nəticəsi və reward vəziyyəti', recordLabel: 'name', fields: [
+    { source: 'name', label: 'Namizəd' }, { source: 'city', label: 'Şəhər' }, { source: 'referrals_count', label: 'Referral', kind: 'number' }, { source: 'qualified_count', label: 'Qualified', kind: 'number' }, { source: 'reward_balance_minor', label: 'Reward', kind: 'money' }, { source: 'created_at', label: 'Müraciət', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
   ] }),
   contract({ name: 'fraud-reviews', label: 'Referral fraud icmalı', singular: 'Fraud icmalı', path: '/admin/fraud-reviews', group: 'operations', readPermission: 'ops.referrals.read', writePermission: 'ops.referrals.review', supportsShow: false, accent: '#FF6F91', description: 'Maskalanmış referral məlumatı, izahlı risk xalı və manual qərar növbəsi', recordLabel: 'referral_id', fields: [
     { source: 'ambassador_name', label: 'Ambassador' }, { source: 'referred_user', label: 'Referral istifadəçi' }, { source: 'risk_score', label: 'Risk xalı', kind: 'number' }, { source: 'reason_codes', label: 'Səbəb kodları' }, { source: 'rule_version', label: 'Qayda versiyası' }, { source: 'created_at', label: 'Növbəyə düşüb', kind: 'date' }, { source: 'status', label: 'Status', kind: 'status' },
@@ -94,11 +100,16 @@ export const resourceContractMap = new Map(resourceContracts.map((item) => [item
 // resources whose API endpoints are implemented in the production backend;
 // otherwise React Admin interprets an API failure as an expired session and
 // redirects the operator to login.
-const implementedResourceNames = new Set(['clubs', 'events', 'partner-organizations', 'audit-events', 'fraud-reviews'])
+const implementedResourceNames = new Set(['clubs', 'events', 'users', 'ambassador-applications', 'partner-organizations', 'audit-events', 'fraud-reviews'])
 
 export const implementedResourceContracts = resourceContracts
   .filter(({ name }) => implementedResourceNames.has(name))
-  .map((contract) => ['clubs', 'fraud-reviews'].includes(contract.name) ? contract : {
+  .map((contract) => ['clubs', 'fraud-reviews'].includes(contract.name) ? contract : contract.name === 'users' ? {
+    ...contract,
+    createPermission: undefined,
+    writePermission: undefined,
+    supportsShow: true,
+  } : {
     ...contract,
     createPermission: undefined,
     writePermission: undefined,
