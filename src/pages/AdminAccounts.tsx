@@ -63,7 +63,6 @@ export function AdminAccounts() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
-  const [role, setRole] = useState<'admin' | 'superadmin'>('admin')
   const [presetSlugs, setPresetSlugs] = useState<string[]>([])
   const [grants, setGrants] = useState<Record<string, GrantEffect>>({})
 
@@ -101,19 +100,18 @@ export function AdminAccounts() {
     setDisplayName('')
     setEmail('')
     setUsername('')
-    setRole('admin')
     setPresetSlugs([])
     setGrants({})
   }
 
   const openDialog = (nextMode: Exclude<DialogMode, null>, account?: AdminAccount) => {
+    if (account?.role === 'superadmin') return
     setTarget(account || null)
     setMode(nextMode)
     setReason('')
     setMfaCode('')
     setTemporaryPassword('')
     if (nextMode === 'access' && account) {
-      setRole(account.role)
       setPresetSlugs(account.preset_slugs)
       setGrants({ ...account.direct_grants })
     }
@@ -137,7 +135,7 @@ export function AdminAccounts() {
       if (mode === 'create') {
         await apiRequest('/admin/admin-accounts', { method: 'POST', body: {
           display_name: displayName, email, username, temporary_password: temporaryPassword,
-          role, preset_slugs: role === 'superadmin' ? [] : presetSlugs, reason,
+          role: 'admin', preset_slugs: presetSlugs,
         } })
         notify('Admin hesabı yaradıldı; ilk girişdə şifrə dəyişikliyi və MFA tələb olunur', { type: 'success' })
       } else if (mode === 'status' && target) {
@@ -149,8 +147,7 @@ export function AdminAccounts() {
       } else if (mode === 'access' && target) {
         const directGrants = Object.entries(grants).filter((entry): entry is [string, 'allow' | 'deny'] => entry[1] === 'allow' || entry[1] === 'deny').map(([permission, effect]) => ({ permission, effect }))
         await apiRequest(`/admin/admin-accounts/${target.id}/access`, { method: 'PUT', headers: versionHeaders(target), body: {
-          role, preset_slugs: role === 'superadmin' ? [] : presetSlugs,
-          grants: role === 'superadmin' ? [] : directGrants, reason,
+          role: 'admin', preset_slugs: presetSlugs, grants: directGrants, reason,
         } })
         notify('Rol və icazələr atomik yeniləndi; aktiv sessiyalar bağlandı', { type: 'success' })
       } else if (mode === 'delete' && target) {
@@ -167,7 +164,7 @@ export function AdminAccounts() {
   }
 
   const selectedPresetPermissions = useMemo(() => new Set(catalog.presets.filter((preset) => presetSlugs.includes(preset.slug)).flatMap((preset) => preset.permissions)), [catalog.presets, presetSlugs])
-  const reasonValid = reason.trim().length >= 3
+  const reasonValid = mode === 'create' || (reason.trim().length >= 3 && reason.trim().length <= 500)
   const mfaValid = /^\d{6}$/.test(mfaCode)
   const passwordValid = strongPassword(temporaryPassword)
   const createValid = displayName.trim().length >= 2 && email.includes('@') && username.trim().length >= 3 && passwordValid
@@ -204,7 +201,7 @@ export function AdminAccounts() {
           <TableCell><Stack direction="row" sx={{ gap: 0.75, flexWrap: 'wrap' }}><Chip size="small" color={account.status === 'active' ? 'success' : account.status === 'suspended' ? 'error' : 'default'} label={account.status === 'active' ? 'Aktiv' : account.status === 'suspended' ? 'Bloklanıb' : 'Silinib'} /><Chip size="small" color={account.mfa_enrolled ? 'success' : 'warning'} label={account.mfa_enrolled ? 'MFA aktiv' : 'MFA gözləyir'} />{account.must_change_password && <Chip size="small" color="warning" label="Şifrə dəyişməlidir" />}</Stack></TableCell>
           <TableCell><Typography variant="body2" sx={{ fontWeight: 700 }}>{account.role === 'superadmin' ? 'Superadmin' : 'Admin'}</Typography><Typography variant="caption" color="text.secondary">{account.role === 'superadmin' ? 'Wildcard capability' : account.preset_slugs.join(', ') || 'Preset yoxdur'} · {account.effective_permissions.length} capability</Typography></TableCell>
           <TableCell>{account.active_sessions}</TableCell>
-          <TableCell align="right">{account.status !== 'deleted' && <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
+          <TableCell align="right">{account.status !== 'deleted' && account.role === 'superadmin' ? <Chip size="small" color="default" label="Qorunan hesab" /> : account.status !== 'deleted' && <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
             <Tooltip title="Rol və icazələr"><IconButton onClick={() => openDialog('access', account)}><SecurityOutlinedIcon /></IconButton></Tooltip>
             <Tooltip title="Şifrəni sıfırla"><IconButton onClick={() => openDialog('password', account)}><KeyOutlinedIcon /></IconButton></Tooltip>
             <Tooltip title={account.status === 'active' ? 'Blokla' : 'Aktivləşdir'}><IconButton color={account.status === 'active' ? 'warning' : 'success'} onClick={() => openDialog('status', account)}>{account.status === 'active' ? <BlockOutlinedIcon /> : <LockOpenOutlinedIcon />}</IconButton></Tooltip>
@@ -222,19 +219,17 @@ export function AdminAccounts() {
           <TextField label="Ad və soyad" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required slotProps={{ htmlInput: { maxLength: 100 } }} />
           <TextField label="E-poçt" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required slotProps={{ htmlInput: { maxLength: 254 } }} />
           <TextField label="Username" value={username} onChange={(event) => setUsername(event.target.value)} required slotProps={{ htmlInput: { maxLength: 30 } }} />
-          <TextField select label="Rol" value={role} onChange={(event) => { setRole(event.target.value as 'admin' | 'superadmin'); setPresetSlugs([]) }}><MenuItem value="admin">Admin</MenuItem><MenuItem value="superadmin">Superadmin</MenuItem></TextField>
+          <Alert severity="info">Yeni hesab avtomatik olaraq Admin rolu ilə yaradılır.</Alert>
         </>}
         {(mode === 'create' || mode === 'password') && <TextField label="Müvəqqəti şifrə" type="password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} error={temporaryPassword.length > 0 && !passwordValid} helperText="12–128 simvol; böyük/kiçik hərf, rəqəm və simvol. Server bu dəyəri cavabda və auditdə qaytarmır." required />}
         {mode === 'access' && <>
-          <TextField select label="Rol" value={role} onChange={(event) => { setRole(event.target.value as 'admin' | 'superadmin'); setPresetSlugs([]); setGrants({}) }}><MenuItem value="admin">Admin</MenuItem><MenuItem value="superadmin">Superadmin</MenuItem></TextField>
-          {role === 'superadmin' ? <Alert severity="warning">Superadmin wildcard capability alır; preset və direct grant tətbiq edilmir.</Alert> : <>
-            <Box><Typography sx={{ mb: 0.5, fontWeight: 700 }}>Preset-lər</Typography>{catalog.presets.map((preset) => <FormControlLabel key={preset.slug} control={<Checkbox checked={presetSlugs.includes(preset.slug)} onChange={(_, checked) => setPresetSlugs((current) => checked ? [...current, preset.slug] : current.filter((slug) => slug !== preset.slug))} />} label={`${preset.name} — ${preset.description}`} />)}</Box>
-            <Box><Typography sx={{ fontWeight: 700 }}>Fərdi allow / deny</Typography><Typography variant="caption" color="text.secondary">Deny rol və preset-dən gələn allow üzərində üstünlük təşkil edir.</Typography><Stack spacing={1} sx={{ mt: 1, maxHeight: 320, overflowY: 'auto', pr: 1 }}>{catalog.permissions.filter((permission) => !permission.key.startsWith('security.admins.')).map((permission) => <Stack key={permission.key} direction={{ xs: 'column', sm: 'row' }} sx={{ gap: 1, alignItems: { sm: 'center' } }}><Box sx={{ flex: 1 }}><Typography variant="body2" sx={{ fontWeight: selectedPresetPermissions.has(permission.key) ? 700 : 500 }}>{permission.key}</Typography><Typography variant="caption" color="text.secondary">{permission.description} · {permission.risk_level}</Typography></Box><TextField select size="small" value={grants[permission.key] || ''} onChange={(event) => setGrants((current) => ({ ...current, [permission.key]: event.target.value as GrantEffect }))} sx={{ minWidth: 130 }}><MenuItem value="">Default</MenuItem><MenuItem value="allow">Allow</MenuItem><MenuItem value="deny">Deny</MenuItem></TextField></Stack>)}</Stack></Box>
-          </>}
+          <Alert severity="info">Hesab Admin rolunda qalır; yalnız preset və fərdi icazələr dəyişdirilir.</Alert>
+          <Box><Typography sx={{ mb: 0.5, fontWeight: 700 }}>Preset-lər</Typography>{catalog.presets.map((preset) => <FormControlLabel key={preset.slug} control={<Checkbox checked={presetSlugs.includes(preset.slug)} onChange={(_, checked) => setPresetSlugs((current) => checked ? [...current, preset.slug] : current.filter((slug) => slug !== preset.slug))} />} label={`${preset.name} — ${preset.description}`} />)}</Box>
+          <Box><Typography sx={{ fontWeight: 700 }}>Fərdi allow / deny</Typography><Typography variant="caption" color="text.secondary">Deny rol və preset-dən gələn allow üzərində üstünlük təşkil edir.</Typography><Stack spacing={1} sx={{ mt: 1, maxHeight: 320, overflowY: 'auto', pr: 1 }}>{catalog.permissions.filter((permission) => !permission.key.startsWith('security.admins.')).map((permission) => <Stack key={permission.key} direction={{ xs: 'column', sm: 'row' }} sx={{ gap: 1, alignItems: { sm: 'center' } }}><Box sx={{ flex: 1 }}><Typography variant="body2" sx={{ fontWeight: selectedPresetPermissions.has(permission.key) ? 700 : 500 }}>{permission.key}</Typography><Typography variant="caption" color="text.secondary">{permission.description} · {permission.risk_level}</Typography></Box><TextField select size="small" value={grants[permission.key] || ''} onChange={(event) => setGrants((current) => ({ ...current, [permission.key]: event.target.value as GrantEffect }))} sx={{ minWidth: 130 }}><MenuItem value="">Default</MenuItem><MenuItem value="allow">Allow</MenuItem><MenuItem value="deny">Deny</MenuItem></TextField></Stack>)}</Stack></Box>
         </>}
         {mode === 'delete' && <Alert severity="error">Bu əməliyyat identifikatorları təmizləyir, giriş və MFA məlumatını ləğv edir. Audit tarixçəsi saxlanılır və əməliyyat geri qaytarılmır.</Alert>}
-        <TextField label="Audit səbəbi" value={reason} onChange={(event) => setReason(event.target.value)} multiline minRows={2} slotProps={{ htmlInput: { maxLength: 500 } }} required />
-        <TextField label="MFA kodu" value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" required />
+        {mode !== 'create' && <TextField label="Audit səbəbi" value={reason} onChange={(event) => setReason(event.target.value)} multiline minRows={2} slotProps={{ htmlInput: { maxLength: 500 } }} required />}
+        <TextField label="MFA kodu" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} autoComplete="one-time-code" error={mfaCode.length > 0 && !mfaValid} helperText="Authenticator tətbiqindəki 6 rəqəmli kod" required />
       </Stack></DialogContent>
       <DialogActions><Button onClick={closeDialog} disabled={pending}>Ləğv et</Button><Button variant="contained" color={mode === 'delete' ? 'error' : 'primary'} onClick={() => void submit()} disabled={!canSubmit}>{pending ? <CircularProgress size={20} /> : 'Təsdiqlə'}</Button></DialogActions>
     </Dialog>

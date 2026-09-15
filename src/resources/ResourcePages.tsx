@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import PublishIcon from '@mui/icons-material/Publish'
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined'
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material'
@@ -17,6 +18,7 @@ import { canAccess, type ResourceContract, type ResourceField } from '../data/re
 
 const statusLabels: Record<string, string> = { active: 'Aktiv', inactive: 'Qaralama', published: 'Yayımlanıb', draft: 'Draft', archived: 'Arxiv', pending: 'Gözləyir', approved: 'Təsdiqlənib', paid: 'Ödənib', completed: 'Tamamlandı', failed: 'Uğursuz', open: 'Açıq', reviewing: 'İcmalda', resolved: 'Həll edilib', suspended: 'Dayandırılıb', blocked: 'Bloklanıb', success: 'Uğurlu', available: 'Hazır', verified: 'Təsdiqli', configured: 'Qurulub', secret: 'Məxfi', critical: 'Kritik', high: 'Yüksək', medium: 'Orta', low: 'Aşağı', review: 'İcmal' }
 const statusTone = (status: string) => ['active', 'published', 'approved', 'paid', 'completed', 'success', 'available', 'verified', 'configured', 'checked_in', 'converted'].includes(status) ? 'success' : ['pending', 'draft', 'open', 'reviewing', 'in_progress', 'review'].includes(status) ? 'warning' : ['failed', 'blocked', 'suspended', 'critical', 'high'].includes(status) ? 'error' : 'default'
+const userDeletePasswordRequired = false
 
 function formatField(field: ResourceField, value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
@@ -47,7 +49,72 @@ function FormField({ field }: { field: ResourceField }) {
 
 function ListActions({ contract }: { contract: ResourceContract }) {
   const { permissions } = usePermissions<string[]>()
-  return <TopToolbar>{contract.createPermission && canAccess(permissions, contract.createPermission) && <CreateButton label={`${contract.singular} yarat`} icon={<AddIcon />} />}</TopToolbar>
+  return <TopToolbar>
+    {contract.name === 'ambassador-applications' && <AmbassadorCreateButton />}
+    {contract.createPermission && canAccess(permissions, contract.createPermission) && <CreateButton label={`${contract.singular} yarat`} icon={<AddIcon />} />}
+  </TopToolbar>
+}
+
+function AmbassadorCreateButton() {
+  const { permissions } = usePermissions<string[]>()
+  const notify = useNotify()
+  const refresh = useRefresh()
+  const [open, setOpen] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
+  const [city, setCity] = useState('')
+  const [motivation, setMotivation] = useState('')
+  const [temporaryPassword, setTemporaryPassword] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  if (!canAccess(permissions, 'ops.ambassadors.create')) return null
+  const reset = () => {
+    setName(''); setEmail(''); setUsername(''); setCity(''); setMotivation(''); setTemporaryPassword(''); setMfaCode('')
+  }
+  const close = () => {
+    if (pending) return
+    setOpen(false)
+    reset()
+  }
+  const valid = name.trim().length >= 2 && /^\S+@\S+\.\S+$/.test(email.trim()) && /^[\p{L}\p{N}_.-]{3,30}$/u.test(username.trim())
+    && temporaryPassword.length >= 6 && /\p{Lu}/u.test(temporaryPassword) && /\p{Ll}/u.test(temporaryPassword) && /^\d{6}$/.test(mfaCode)
+  const submit = async () => {
+    setPending(true)
+    try {
+      await apiRequest('/admin/mfa/step-up', { method: 'POST', body: { code: mfaCode } })
+      await apiRequest('/admin/ambassadors', { method: 'POST', body: {
+        name: name.trim(), email: email.trim(), username: username.trim(), city: city.trim(), motivation: motivation.trim(), temporary_password: temporaryPassword,
+      } })
+      notify('Ambassador hesabı və aktiv referral linki yaradıldı', { type: 'success' })
+      setOpen(false)
+      reset()
+      refresh()
+    } catch (caught) {
+      notify(caught instanceof Error ? caught.message : 'Ambassador hesabını yaratmaq mümkün olmadı', { type: 'error' })
+    } finally {
+      setPending(false)
+    }
+  }
+  return <>
+    <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Ambassador yarat</Button>
+    <Dialog open={open} onClose={close} fullWidth maxWidth="sm">
+      <DialogTitle>Yeni ambassador hesabı</DialogTitle>
+      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+        <Alert severity="info">Hesab dərhal aktiv yaradılır, ambassador rolu və unikal referral linki avtomatik təyin edilir.</Alert>
+        <TextField label="Ad və soyad" value={name} onChange={(event) => setName(event.target.value)} autoFocus required slotProps={{ htmlInput: { maxLength: 100 } }} />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField label="E-poçt" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required fullWidth slotProps={{ htmlInput: { maxLength: 254 } }} />
+          <TextField label="İstifadəçi adı" value={username} onChange={(event) => setUsername(event.target.value)} required fullWidth slotProps={{ htmlInput: { maxLength: 30 } }} helperText="Hərf, rəqəm, nöqtə, tire və alt xətt" />
+        </Stack>
+        <TextField label="Şəhər" value={city} onChange={(event) => setCity(event.target.value)} slotProps={{ htmlInput: { maxLength: 120 } }} />
+        <TextField label="Müvəqqəti şifrə" type="password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} required autoComplete="new-password" helperText="Minimum 6 simvol, böyük və kiçik hərf olmalıdır." />
+        <TextField label="Motivasiya / qeyd" value={motivation} onChange={(event) => setMotivation(event.target.value)} multiline minRows={2} slotProps={{ htmlInput: { maxLength: 2000 } }} />
+        <TextField label="MFA kodu" value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" required helperText="Bu yüksək səlahiyyətli əməliyyat admin auditinə yazılır." />
+      </Stack></DialogContent>
+      <DialogActions><Button onClick={close} disabled={pending}>Ləğv et</Button><Button variant="contained" onClick={() => void submit()} disabled={pending || !valid}>Hesabı yarat</Button></DialogActions>
+    </Dialog>
+  </>
 }
 
 function PermissionedEditButton({ contract }: { contract: ResourceContract }) {
@@ -188,6 +255,61 @@ function UserOperationsButton() {
         <Typography variant="caption">Dayandırma mobil və partner/ambassador portal sessiyalarını dərhal ləğv edir. Hər əməliyyat request ID və səbəblə auditə yazılır.</Typography>
       </Stack></DialogContent>
       <DialogActions><Button onClick={() => setOpen(false)} disabled={pending}>Ləğv et</Button><Button onClick={() => void submit()} disabled={pending || reason.trim().length < 3 || mfaCode.length !== 6} variant="contained">Təsdiqlə</Button></DialogActions>
+    </Dialog>
+  </>
+}
+
+function UserDeleteButton() {
+  const record = useRecordContext<RaRecord>()
+  const { permissions } = usePermissions<string[]>()
+  const notify = useNotify()
+  const refresh = useRefresh()
+  const [open, setOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [pending, setPending] = useState(false)
+  if (!record || !canAccess(permissions, 'ops.users.update') || !['active', 'suspended'].includes(String(record.status))) return null
+
+  const close = () => {
+    if (pending) return
+    setOpen(false)
+    setCurrentPassword('')
+  }
+
+  const submit = async () => {
+    setPending(true)
+    try {
+      const headers = new Headers()
+      headers.set('If-Match', `"${String(record.version)}"`)
+      headers.set('Idempotency-Key', crypto.randomUUID())
+      await apiRequest(`/admin/users/${encodeURIComponent(String(record.id))}`, {
+        method: 'DELETE', headers, body: { current_password: currentPassword },
+      })
+      notify(`${String(record.name || 'İstifadəçi')} adlı istifadəçi silinmə prosesinə göndərildi`, { type: 'success' })
+      setOpen(false)
+      setCurrentPassword('')
+      refresh()
+    } catch (caught) {
+      notify(caught instanceof Error ? caught.message : 'İstifadəçini silmək mümkün olmadı', { type: 'error' })
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return <>
+    <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={(event) => { event.stopPropagation(); setOpen(true) }}>Sil</Button>
+    <Dialog open={open} onClose={close} fullWidth maxWidth="xs">
+      <DialogTitle>İstifadəçini sil</DialogTitle>
+      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+        <Alert severity="error">
+          <strong>{String(record.name || 'İstifadəçi')}</strong> adlı istifadəçini silirsiniz.
+        </Alert>
+        <Typography variant="body2" color="text.secondary">Bu əməliyyat hesabı dərhal deaktiv edir və şəxsi məlumatların, media fayllarının və giriş məlumatlarının daimi silinmə prosesini başladır.</Typography>
+        {userDeletePasswordRequired && <TextField label="Admin şifrəsi" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required />}
+      </Stack></DialogContent>
+      <DialogActions>
+        <Button onClick={close} disabled={pending}>Ləğv et</Button>
+        <Button color="error" variant="contained" onClick={() => void submit()} disabled={pending || (userDeletePasswordRequired && currentPassword.length === 0)}>{pending ? 'Silinir…' : 'Təsdiqlə və sil'}</Button>
+      </DialogActions>
     </Dialog>
   </>
 }
@@ -364,9 +486,9 @@ function AmbassadorDecisionButton() {
 }
 
 export function createResourcePages(contract: ResourceContract) {
-  const ListPage = () => <PermissionGate permission={contract.readPermission}><Box className="resource-page"><Box className="resource-heading" sx={{ '--resource-accent': contract.accent }}><Box><Typography className="resource-kicker">{contract.group}</Typography><Typography component="h1">{contract.label}</Typography><Typography>{contract.description}</Typography>{contract.name === 'fraud-reviews' && <FraudMetrics />}</Box></Box><List title={contract.label} perPage={25} sort={{ field: contract.fields.find((field) => field.kind === 'date')?.source || 'id', order: 'DESC' }} filters={[<SearchInput key="q" source="q" placeholder="Axtar…" alwaysOn />, <SelectInput key="status" source="status" label="Status" choices={['active', 'approved', 'rejected', 'suspended', 'cancelled', 'completed', 'pending_review', 'pending_deletion', 'deleted', 'inactive', 'pending', 'draft', 'published', 'archived', 'failed'].map((id) => ({ id, name: statusLabels[id] || id }))} />]} actions={<ListActions contract={contract} />} empty={false}><Datagrid bulkActionButtons={false} rowClick={contract.supportsShow === false ? false : 'show'} className="resource-table">{contract.fields.filter((field) => field.list !== false).map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.name === 'fraud-reviews' && <FraudDecisionButton />}{contract.name === 'users' && <UserOperationsButton />}{contract.name === 'events' && <EventLifecycleButton />}{contract.name === 'partner-organizations' && <PartnerOperationsButton />}{contract.name === 'ambassador-applications' && <AmbassadorDecisionButton />}{contract.supportsShow !== false && <ShowButton label="Bax" />}{contract.name !== 'fraud-reviews' && <PermissionedEditButton contract={contract} />}</Datagrid></List></Box></PermissionGate>
+  const ListPage = () => <PermissionGate permission={contract.readPermission}><Box className="resource-page"><Box className="resource-heading" sx={{ '--resource-accent': contract.accent }}><Box><Typography className="resource-kicker">{contract.group}</Typography><Typography component="h1">{contract.label}</Typography><Typography>{contract.description}</Typography>{contract.name === 'fraud-reviews' && <FraudMetrics />}</Box></Box><List title={contract.label} perPage={25} sort={{ field: contract.fields.find((field) => field.kind === 'date')?.source || 'id', order: 'DESC' }} filters={[<SearchInput key="q" source="q" placeholder="Axtar…" alwaysOn />, <SelectInput key="status" source="status" label="Status" choices={['active', 'approved', 'rejected', 'suspended', 'cancelled', 'completed', 'pending_review', 'pending_deletion', 'deleted', 'inactive', 'pending', 'draft', 'published', 'archived', 'failed'].map((id) => ({ id, name: statusLabels[id] || id }))} />]} actions={<ListActions contract={contract} />} empty={false}><Datagrid bulkActionButtons={false} rowClick={contract.supportsShow === false ? false : 'show'} className="resource-table">{contract.fields.filter((field) => field.list !== false).map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.name === 'fraud-reviews' && <FraudDecisionButton />}{contract.name === 'users' && <UserOperationsButton />}{contract.name === 'users' && <UserDeleteButton />}{contract.name === 'events' && <EventLifecycleButton />}{contract.name === 'partner-organizations' && <PartnerOperationsButton />}{contract.name === 'ambassador-applications' && <AmbassadorDecisionButton />}{contract.supportsShow !== false && <ShowButton label="Bax" />}{contract.name !== 'fraud-reviews' && <PermissionedEditButton contract={contract} />}</Datagrid></List></Box></PermissionGate>
 
-  const ShowPage = () => <PermissionGate permission={contract.readPermission}><Show title={contract.singular} actions={<ShowActions contract={contract} />}><Box className="detail-shell"><Box className="detail-accent" sx={{ background: contract.accent }} /><Typography className="resource-kicker">{contract.singular} məlumatı</Typography><SimpleShowLayout>{contract.fields.map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.name === 'clubs' && <PublishClubButton />}{contract.name === 'users' && <UserOperationsButton />}{contract.name === 'events' && <EventLifecycleButton />}</SimpleShowLayout></Box></Show></PermissionGate>
+  const ShowPage = () => <PermissionGate permission={contract.readPermission}><Show title={contract.singular} actions={<ShowActions contract={contract} />}><Box className="detail-shell"><Box className="detail-accent" sx={{ background: contract.accent }} /><Typography className="resource-kicker">{contract.singular} məlumatı</Typography><SimpleShowLayout>{contract.fields.map((field) => <FieldDisplay key={field.source} field={field} label={field.label} />)}{contract.name === 'clubs' && <PublishClubButton />}{contract.name === 'users' && <UserOperationsButton />}{contract.name === 'users' && <UserDeleteButton />}{contract.name === 'events' && <EventLifecycleButton />}</SimpleShowLayout></Box></Show></PermissionGate>
 
   const EditPage = () => <PermissionGate permission={contract.writePermission || contract.readPermission}><Edit title={`${contract.singular} — düzəliş`} mutationMode="pessimistic"><SimpleForm className="resource-form"><Box className="form-intro"><Typography component="h2">{contract.singular} məlumatlarını yenilə</Typography><Typography>Dəyişikliklər versiya yoxlamasından keçir və audit izinə yazılır.</Typography></Box><Stack className="form-grid">{contract.fields.filter((field) => field.editable).map((field) => <FormField key={field.source} field={field} />)}</Stack></SimpleForm></Edit></PermissionGate>
 

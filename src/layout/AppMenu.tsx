@@ -27,8 +27,8 @@ const icons: Record<string, ReactElement> = {
   users: <GroupOutlinedIcon />, reports: <FlagOutlinedIcon />, 'ambassador-applications': <AutoAwesomeMosaicOutlinedIcon />, jobs: <WorkspacesOutlinedIcon />,
   'audit-events': <HistoryOutlinedIcon />, roles: <SecurityOutlinedIcon />, sessions: <SecurityOutlinedIcon />, payouts: <PaymentsOutlinedIcon />,
   settings: <SettingsOutlinedIcon />, backups: <CloudOutlinedIcon />,
-	'partner-organizations': <BusinessOutlinedIcon />,
-	'fraud-reviews': <SecurityOutlinedIcon />,
+  'partner-organizations': <BusinessOutlinedIcon />,
+  'fraud-reviews': <SecurityOutlinedIcon />,
 }
 
 const groups = [
@@ -41,6 +41,15 @@ export function AppMenu() {
   const visibleResourceContracts = runtimeConfig.demoMode ? resourceContracts : implementedResourceContracts
   return (
     <Menu className="app-menu" component="nav" aria-label="Əsas menyu">
+      <Box className="sidebar-context">
+        <Box className="sidebar-context-mark"><AutoAwesomeMosaicOutlinedIcon /></Box>
+        <Box className="sidebar-context-copy">
+          <Typography className="sidebar-context-title">İdarəetmə paneli</Typography>
+          <Typography className="sidebar-context-status">
+            <span aria-hidden="true" />{runtimeConfig.demoMode ? 'Demo mühit' : 'Təhlükəsiz iş sahəsi'}
+          </Typography>
+        </Box>
+      </Box>
       <MenuItemLink to="/" leftIcon={<AutoAwesomeMosaicOutlinedIcon />} primaryText="İcmal" />
       {groups.map((group) => {
         const items = visibleResourceContracts.filter((item) => item.group === group.key && canAccess(permissions, item.readPermission))

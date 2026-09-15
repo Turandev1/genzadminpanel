@@ -3,7 +3,7 @@ import type { AdminContext } from '../auth/session'
 const expires = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
 const commonSession = { expires_at: expires, idle_expires_at: expires, mfa_level: 'webauthn', permissions_version: 12 }
 
-const adminPermissions = ['content.clubs.read', 'content.events.read', 'content.attendees.read', 'ops.users.read', 'ops.users.update', 'ops.reports.read', 'ops.reports.review', 'ops.ambassadors.read', 'ops.ambassadors.review', 'ops.partners.read', 'ops.partners.review', 'ops.jobs.read', 'ops.jobs.retry', 'security.audit.read']
+const adminPermissions = ['content.clubs.read', 'content.events.read', 'content.attendees.read', 'ops.users.read', 'ops.users.update', 'ops.reports.read', 'ops.reports.review', 'ops.ambassadors.read', 'ops.ambassadors.create', 'ops.ambassadors.review', 'ops.partners.read', 'ops.partners.review', 'ops.jobs.read', 'ops.jobs.retry', 'security.audit.read']
 
 export const demoProfiles: Record<string, AdminContext> = {
   admin: { identity: { id: 'demo-admin', fullName: 'Aysel Quliyeva', email: 'admin@genz.club' }, roles: ['admin'], permissions: adminPermissions, scopes: {}, session: commonSession },
